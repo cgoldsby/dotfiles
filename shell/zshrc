@@ -1,0 +1,16 @@
+#
+# Executes commands at the start of an interactive session.
+#
+# Authors:
+#   Sorin Ionescu <sorin.ionescu@gmail.com>
+#
+
+# Source Prezto.
+if [[ -s "${ZDOTDIR:-$HOME}/.zprezto/init.zsh" ]]; then
+  source "${ZDOTDIR:-$HOME}/.zprezto/init.zsh"
+fi
+
+# Customize to your needs...
+
+[[ -e ~/Sources/dotfiles/shell/shell_aliases ]] && emulate sh -c 'source ~/Sources/dotfiles/shell/shell_aliases'
+[[ -e ~/.bash_profile ]] && emulate sh -c 'source ~/.bash_profile'

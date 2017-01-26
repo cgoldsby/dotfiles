@@ -1,0 +1,13 @@
+# Terminal
+alias ll='ls -FGlAhp'                       # Preferred 'ls' implementation
+alias cd..='cd ../'                         # Go back 1 directory level (for fast typers)
+alias ..='cd ../'                           # Go back 1 directory level
+alias ~="cd ~"                              # ~:	Go Home
+alias c='clear'                             # c:	Clear terminal display
+
+# Git
+alias prune='git branch --merged | grep -v "\*" | xargs -n 1 git branch -d'     # Prune merged branches
+
+# Development
+alias nuke='rm -rf ~/Library/Developer/Xcode/DerivedData/ ; echo "Successfully cleared Derived Data ♻️ "'	 # Clean derived data
+alias ws='open *.xcworkspace'			    		# Open All Xcode workspaces in directory

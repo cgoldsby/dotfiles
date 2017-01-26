@@ -13,7 +13,9 @@ install_zsh () {
       echo "✓ zsh set as default shell"
     fi
 
-    zprezto/setup.zsh
+	if [ ! -d $HOME/.zprezto ]; then
+    	zprezto/setup.zsh
+	fi
 }
 
 setup_zprezto () {
@@ -29,6 +31,13 @@ setup_iterm () {
 	echo "✓ iTerm configured"
 }
 
+setup_shell (){
+	cp shell/bashrc ~/.bashrc
+	cp shell/zshrc ~/.zshrc
+	echo "✓ shell configured"
+}
+
 install_zsh
 setup_zprezto
 setup_iterm
+setup_shell

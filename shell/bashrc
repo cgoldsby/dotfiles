@@ -1,0 +1,3 @@
+if [ -f ~/Sources/dotfiles/shell/shell_aliases ]; then
+  source ~/Sources/dotfiles/shell/shell_aliases
+fi
