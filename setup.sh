@@ -23,6 +23,7 @@ setup_zprezto () {
 setup_iterm () {
 	# Don’t display the annoying prompt when quitting iTerm
 	defaults write com.googlecode.iterm2 PromptOnQuit -bool false
+	defaults write com.googlecode.iterm2 LoadPrefsFromCustomFolder -bool true
 	defaults write com.googlecode.iterm2 PrefsCustomFolder -string "${HOME}/Sources/dotfiles/iterm"
 	echo "✓ iTerm configured"
 }
