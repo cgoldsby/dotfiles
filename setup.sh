@@ -20,6 +20,7 @@ install_zsh () {
 
 setup_zprezto () {
 	cp zprezto/zpreztorc $HOME/.zpreztorc
+	cp zprezto/themes/prompt_cgoldsby_setup $HOME/.zprezto/modules/prompt/functions
 	echo "✓ zprezto configured"
 }
 
