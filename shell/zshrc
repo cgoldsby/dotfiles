@@ -14,3 +14,6 @@ fi
 
 [[ -e ~/Sources/dotfiles/shell/shell_aliases ]] && emulate sh -c 'source ~/Sources/dotfiles/shell/shell_aliases'
 [[ -e ~/.bash_profile ]] && emulate sh -c 'source ~/.bash_profile'
+
+export EDITOR='vim'
+export VISUAL='vim'
