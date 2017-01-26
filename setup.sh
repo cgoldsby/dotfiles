@@ -4,7 +4,6 @@ install_zsh () {
 	# Test to see if zshell is installed.
 	if [ ! -f /bin/zsh -o -f /usr/bin/zsh ]; then
 		sudo apt-get install -y git zsh
-		zprezto/setup.zsh
 		echo "✓ zsh installed"
 	fi
 
@@ -13,6 +12,8 @@ install_zsh () {
       chsh -s $(which zsh)
       echo "✓ zsh set as default shell"
     fi
+
+    zprezto/setup.zsh
 }
 
 setup_zprezto () {
