@@ -18,12 +18,12 @@ install_zsh () {
     	fi
 
 	if [ ! -d $HOME/.zprezto ]; then
-    	zprezto/setup.zsh
+		zprezto/setup.zsh
 	fi
 }
 
 setup_zprezto () {
-	cp zprezto/zpreztorc $HOME/.zpreztorc
+	ln -sf $HOME/Sources/dotfiles/zprezto/zpreztorc $HOME/.zpreztorc
 	cp zprezto/themes/prompt_cgoldsby_setup $HOME/.zprezto/modules/prompt/functions
 	puts "zprezto configured"
 }
@@ -36,9 +36,9 @@ setup_iterm () {
 	puts "iTerm configured"
 }
 
-setup_shell (){
-	ln -sf ${HOME}/Sources/dotfiles/shell/bashrc ~/.bashrc
-	ln -sf ${HOME}/Sources/dotfiles/shell/zshrc ~/.zshrc
+setup_shell () {
+	ln -sf $HOME/Sources/dotfiles/shell/bashrc $HOME/.bashrc
+	ln -sf $HOME/Sources/dotfiles/shell/zshrc $HOME/.zshrc
 	puts "shell configured"
 }
 
