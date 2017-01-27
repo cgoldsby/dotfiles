@@ -36,6 +36,12 @@ setup_iterm () {
 	puts "iTerm configured"
 }
 
+setup_terminal () {
+	defaults write $HOME/Library/Preferences/com.apple.Terminal.plist "Default Window Settings" -string "Pro"
+	defaults write $HOME/Library/Preferences/com.apple.Terminal.plist "Startup Window Settings" -string "Pro"
+	puts "terminal configured"
+}
+
 setup_shell () {
 	ln -sf $HOME/Sources/dotfiles/shell/bashrc $HOME/.bashrc
 	ln -sf $HOME/Sources/dotfiles/shell/zshrc $HOME/.zshrc
@@ -51,4 +57,5 @@ install_zsh
 setup_zprezto
 setup_iterm
 setup_shell
+setup_terminal
 setup_desktop
