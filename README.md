@@ -14,4 +14,4 @@ To bootstrap or update:
 ```
 
 ### Todos
-* Copy up GPG keys for github
+* Copy GPG keys for github
