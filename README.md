@@ -19,7 +19,7 @@ To bootstrap or update:
 - configures iTerm App preferences & theme
 - configures shell .bashrc and .zschrc
 - configures Terminal App preferences
-- configures desktop wallpaper
+- sets desktop wallpaper
 
 ## Manual Steps
 * Copy GPG keys for github
