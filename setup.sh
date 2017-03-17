@@ -49,7 +49,7 @@ setup_shell () {
 }
 
 setup_desktop () {
-	osascript -e 'tell application "Finder" to set desktop picture to POSIX file "/Users/cgoldsby/Sources/dotfiles/desktop/wallpaper3.jpg"'
+	osascript -e 'tell application "Finder" to set desktop picture to POSIX file "/Users/cgoldsby/Sources/dotfiles/desktop/wallpaper6.jpg"'
 	logs "desktop configured"
 }
 
