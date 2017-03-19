@@ -1,5 +1,5 @@
 # dot files
-![](https://github.com/cgoldsby/dotfiles/blob/master/screenshot.png)
+![](screenshot.png)
 
 ## Prerequisites
 Install [iTerm2](https://www.iterm2.com/)
@@ -20,6 +20,7 @@ To bootstrap or update:
 - configures shell .bashrc and .zschrc
 - configures Terminal App preferences
 - sets desktop wallpaper
+- show ~/Library/ in Finder
 
 ## Manual Steps
 * Copy GPG keys for github

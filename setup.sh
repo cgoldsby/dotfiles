@@ -53,9 +53,15 @@ setup_desktop () {
 	logs "desktop configured"
 }
 
+setup_osx () {
+  chflags nohidden ~/Library/
+  logs "osx configured"
+}
+
 install_zsh
 setup_zprezto
 setup_iterm
 setup_shell
 setup_terminal
 setup_desktop
+setup_osx
