@@ -53,9 +53,9 @@ setup_desktop () {
 	logs "desktop configured"
 }
 
-setup_osx () {
+setup_finder () {
   chflags nohidden ~/Library/
-  logs "osx configured"
+  logs "finder configured"
 }
 
 install_zsh
@@ -64,4 +64,4 @@ setup_iterm
 setup_shell
 setup_terminal
 setup_desktop
-setup_osx
+setup_finder
