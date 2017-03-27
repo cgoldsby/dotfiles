@@ -19,6 +19,7 @@ To bootstrap or update:
 - configures iTerm App preferences & theme
 - configures shell .bashrc and .zschrc
 - configures Terminal App preferences
+- install [m-cli](https://github.com/rgcr/m-cli)
 - sets desktop wallpaper
 - show ~/Library/ in Finder
 

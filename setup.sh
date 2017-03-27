@@ -22,6 +22,11 @@ install_zsh () {
 	fi
 }
 
+install_m-cli () {
+ curl -fsSL https://raw.githubusercontent.com/rgcr/m-cli/master/install.sh | sudo sh
+ logs "m-cli installed (or updated)"
+}
+
 setup_zprezto () {
 	ln -sf $HOME/Sources/dotfiles/zprezto/zpreztorc $HOME/.zpreztorc
 	cp zprezto/themes/prompt_cgoldsby_setup $HOME/.zprezto/modules/prompt/functions
@@ -63,5 +68,6 @@ setup_zprezto
 setup_iterm
 setup_shell
 setup_terminal
+install_m-cli
 setup_desktop
 setup_finder
