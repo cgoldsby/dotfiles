@@ -15,13 +15,16 @@ To bootstrap or update:
 ```
 ### What does the setup script do?
 - installs zsh; if needed
+- install or update homebrew
+- install or update [m-cli](https://github.com/rgcr/m-cli)
 - configures zprezto theme
 - configures iTerm App preferences & theme
 - configures shell .bashrc and .zschrc
 - configures Terminal App preferences
-- install [m-cli](https://github.com/rgcr/m-cli)
 - sets desktop wallpaper
 - show ~/Library/ in Finder
+- show extensions in Finder
+- set up dock on the bottom with no magnification & autohide turned off
 
 ## Manual Steps
 * Copy GPG keys for github

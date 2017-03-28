@@ -1,7 +1,10 @@
 #!/bin/bash
 
+GREEN='\033[1;32m'
+CLEAR='\033[0m'
+
 logs () {
-	echo "✓ $1"
+	echo -e "${GREEN}✓${CLEAR} $1"
 }
 
 install_zsh () {
@@ -19,7 +22,10 @@ install_zsh () {
 
 	if [ ! -d $HOME/.zprezto ]; then
 		zprezto/setup.zsh
+		logs "zsh setup"
 	fi
+
+	logs "zsh configured"
 }
 
 install_brew () {
@@ -37,7 +43,7 @@ install_m-cli () {
 	  brew install m-cli
 	  logs "m-cli installed"
 	else
-		brew upgrade --cleanup m-cli
+		brew upgrade --cleanup m-cli 2>/dev/null
 		logs "m-cli upgraded"
 	fi
 }
@@ -69,7 +75,7 @@ setup_shell () {
 }
 
 setup_desktop () {
-	osascript -e 'tell application "Finder" to set desktop picture to POSIX file "/Users/cgoldsby/Sources/dotfiles/desktop/wallpaper7.jpg"'
+	osascript -e 'tell application "Finder" to set desktop picture to POSIX file "/Users/cgoldsby/Sources/dotfiles/desktop/wallpaper5.jpg"'
 	logs "desktop configured"
 }
 
