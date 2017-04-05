@@ -1,0 +1,4 @@
+syntax on
+
+au BufReadPost Fastfile set syntax=ruby
+
