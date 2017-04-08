@@ -20,6 +20,7 @@ To bootstrap or update:
 - configures zprezto theme
 - configures iTerm App preferences & theme
 - configures shell .bashrc and .zschrc
+- configures vim
 - configures Terminal App preferences
 - sets desktop wallpaper
 - show ~/Library/ in Finder
