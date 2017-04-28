@@ -77,13 +77,14 @@ setup_shell () {
 setup_vim () {
 	mkdir -p $HOME/.vim/colors
         cp -af `pwd`/vim/colors/*.vim $HOME/.vim/colors/
-	
+
 	ln -sf `pwd`/vim/vimrc $HOME/.vimrc
 	logs "vim configured"
 }
 
 setup_desktop () {
-	osascript -e 'tell application "Finder" to set desktop picture to POSIX file "/Users/cgoldsby/Sources/dotfiles/desktop/wallpaper5.jpg"'
+	image_path=`pwd`/desktop/wallpaper4.jpg
+	osascript -e "tell application \"Finder\" to set desktop picture to POSIX file \"${image_path}\""
 	logs "desktop configured"
 }
 
