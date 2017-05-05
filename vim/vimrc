@@ -54,3 +54,4 @@ set guifont=Monaco:h14
 syntax on
 
 au BufReadPost Fastfile set syntax=ruby
+au BufReadPost Podfile set syntax=ruby
