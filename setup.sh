@@ -83,7 +83,7 @@ setup_vim () {
 }
 
 setup_desktop () {
-	image_path=`pwd`/desktop/wallpaper4.jpg
+	image_path=`pwd`/desktop/wallpaper8.jpg
 	osascript -e "tell application \"Finder\" to set desktop picture to POSIX file \"${image_path}\""
 	logs "desktop configured"
 }
