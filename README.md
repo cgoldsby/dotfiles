@@ -23,6 +23,7 @@ To bootstrap or update:
 - configures vim
 - configures Terminal App preferences
 - sets desktop wallpaper
+- sets macOS to dark mode
 - show ~/Library/ in Finder
 - show extensions in Finder
 - set up dock on the bottom with no magnification & autohide turned off
