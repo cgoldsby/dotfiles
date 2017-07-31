@@ -27,6 +27,7 @@ To bootstrap or update:
 - show ~/Library/ in Finder
 - show extensions in Finder
 - set up dock on the bottom with no magnification & autohide turned off
+- set up git aliases
 
 ## Manual Steps
 * Copy GPG keys for github
