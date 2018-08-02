@@ -83,7 +83,7 @@ setup_vim () {
 }
 
 setup_desktop () {
-	image_path=`pwd`/desktop/wallpaper9.jpg
+	image_path=`pwd`/desktop/wallpaper10.jpg
 	osascript -e "tell application \"Finder\" to set desktop picture to POSIX file \"${image_path}\""
  	osascript -e "tell application \"System Events\" to tell appearance preferences to set dark mode to true"
 	logs "desktop configured"
