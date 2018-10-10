@@ -14,4 +14,5 @@ alias ws='open *.xcworkspace'			    		# Open All Xcode workspaces in directory
 alias sources='cd ~/Sources'		# Navigate to Sources directory
 alias dotfiles='cd ~/Sources/dotfiles' 	# Navigation to dotfiles project
 alias xcpinstall='bundle install ; bundle exec pod install ; ws ; echo "🚀"'	# Common install comands for Xcode projects
+alias be="bundle exec "
 alias xcpi='xcpinstall'
