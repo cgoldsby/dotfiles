@@ -10,7 +10,7 @@ alias prune='git branch --merged | grep -v "\*" | xargs -n 1 git branch -d'     
 
 # Development
 alias nuke='rm -rf ~/Library/Developer/Xcode/DerivedData/ ; echo "Successfully cleared Derived Data ♻️ "'	 # Clean derived data
-alias ws='open *.xcworkspace'			    		# Open All Xcode workspaces in directory
+alias ws='xed .'			    		# Open Xcode workspaces or project in directory
 alias sources='cd ~/Sources'		# Navigate to Sources directory
 alias dotfiles='cd ~/Sources/dotfiles' 	# Navigation to dotfiles project
 alias xcpinstall='bundle install ; be pod install ; nuke; ws -g ; echo "🚀"'	# Common install comands for Xcode projects
