@@ -48,6 +48,16 @@ install_m-cli () {
 	fi
 }
 
+install_tig () {
+	if [ ! -f "`which tig`" ]; then
+	  brew install tig
+	  logs "tig installed"
+	else
+		brew upgrade --cleanup tig 2>/dev/null
+		logs "tig upgraded"
+	fi
+}
+
 setup_zprezto () {
 	ln -sf `pwd`/zprezto/zpreztorc $HOME/.zpreztorc
 	cp zprezto/themes/prompt_cgoldsby_setup $HOME/.zprezto/modules/prompt/functions
@@ -111,6 +121,7 @@ setup_git_aliases () {
 install_zsh
 install_brew
 install_m-cli
+install_tig 
 setup_zprezto
 setup_iterm
 setup_shell
