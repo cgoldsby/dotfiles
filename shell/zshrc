@@ -12,7 +12,6 @@ fi
 
 # Customize to your needs...
 
-[[ -e ~/Sources/dotfiles/shell/profile ]] && emulate sh -c 'source ~/Sources/dotfiles/shell/profile'
 [[ -e ~/Sources/dotfiles/shell/shell_aliases ]] && emulate sh -c 'source ~/Sources/dotfiles/shell/shell_aliases'
 [[ -e ~/.bash_profile ]] && emulate sh -c 'source ~/.bash_profile'
 

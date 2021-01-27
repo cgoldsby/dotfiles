@@ -79,7 +79,6 @@ setup_terminal () {
 }
 
 setup_shell () {
-	ln -sf `pwd`/shell/profile $HOME/.profile
 	ln -sf `pwd`/shell/bashrc $HOME/.bashrc
 	ln -sf `pwd`/shell/zshrc $HOME/.zshrc
 	logs "shell configured"
@@ -122,7 +121,7 @@ setup_git_aliases () {
 install_zsh
 install_brew
 install_m-cli
-install_tig
+install_tig 
 setup_zprezto
 setup_iterm
 setup_shell
