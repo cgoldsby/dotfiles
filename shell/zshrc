@@ -18,3 +18,5 @@ fi
 
 export EDITOR='vim'
 export VISUAL='vim'
+
+eval "$(rbenv init -)"
