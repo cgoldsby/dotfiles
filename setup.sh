@@ -121,7 +121,7 @@ setup_git_aliases () {
 install_zsh
 install_brew
 install_m-cli
-install_tig 
+install_tig
 setup_zprezto
 setup_iterm
 setup_shell
