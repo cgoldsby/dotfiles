@@ -30,7 +30,7 @@ install_zsh () {
 
 install_brew () {
 	if [ ! -f "`which brew`" ]; then
-	  /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+	  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 		logs "homebrew installed"
 	else
 	  brew update
