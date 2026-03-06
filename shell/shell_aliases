@@ -6,7 +6,7 @@ alias ~="cd ~"                              # ~:	Go Home
 alias c='clear'                             # c:	Clear terminal display
 
 # Git
-alias prune='git branch --merged | grep -v "\*" | xargs -n 1 git branch -d'     # Prune merged branches
+alias prune='git branch --merged | grep -v "^\s*[*+]" | xargs -n 1 git branch -d'     # Prune merged branches
 
 # Development
 alias nuke='rm -rf ~/Library/Developer/Xcode/DerivedData/ ; echo "Successfully cleared Derived Data ♻️ "'	 # Clean derived data
