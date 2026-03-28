@@ -1,0 +1,85 @@
+"$schema" = 'https://starship.rs/config-schema.json'
+
+# Single-line prompt
+format = """
+$username\
+$directory\
+$git_branch\
+$git_status\
+$git_state\
+$cmd_duration\
+$sudo\
+$character"""
+
+add_newline = false
+
+# -----------------------------------------------------------------------------
+# Username — only shown over SSH or as root
+# -----------------------------------------------------------------------------
+[username]
+style_user  = 'dimmed white'
+style_root  = 'bold red'
+format      = '[$user]($style) '
+show_always = false
+
+# -----------------------------------------------------------------------------
+# Character
+# -----------------------------------------------------------------------------
+[character]
+success_symbol = '[❯](bold green)'
+error_symbol   = '[❯](bold red)'
+vimcmd_symbol  = '[❮](bold green)'
+
+# -----------------------------------------------------------------------------
+# Directory
+# -----------------------------------------------------------------------------
+[directory]
+style = 'white'
+format = '[$path]($style) '
+
+# -----------------------------------------------------------------------------
+# Command Duration
+# -----------------------------------------------------------------------------
+[cmd_duration]
+min_time = 2000
+style    = 'dimmed white'
+format   = '[$duration]($style) '
+
+# -----------------------------------------------------------------------------
+# Sudo — shown when sudo credentials are cached
+# -----------------------------------------------------------------------------
+[sudo]
+disabled = false
+symbol   = '⚡'
+style    = 'bold yellow'
+format   = '[$symbol]($style) '
+
+# -----------------------------------------------------------------------------
+# Git Branch
+# -----------------------------------------------------------------------------
+[git_branch]
+style  = 'cyan'
+format = '[$branch]($style) '
+
+# -----------------------------------------------------------------------------
+# Git State — shown during rebase, merge, cherry-pick, etc.
+# -----------------------------------------------------------------------------
+[git_state]
+style  = 'bold yellow'
+format = '\([$state( $progress_current/$progress_total)]($style)\) '
+
+# -----------------------------------------------------------------------------
+# Git Status
+# -----------------------------------------------------------------------------
+[git_status]
+format    = '([$all_status$ahead_behind]())'
+staged    = '[+$count](green) '
+deleted   = '[x$count](red) '
+modified  = '[~$count](blue) '
+untracked = '[?$count](white) '
+stashed   = '[$count](cyan) '
+ahead     = '[↑$count](magenta) '
+behind    = '[↓$count](magenta) '
+diverged  = '[↑$ahead_count](magenta)[↓$behind_count](magenta) '
+renamed   = '[»$count](magenta) '
+conflicted = '[=$count](yellow) '

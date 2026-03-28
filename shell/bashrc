@@ -1,3 +1,1 @@
-if [ -f ~/Sources/dotfiles/shell/shell_aliases ]; then
-  source ~/Sources/dotfiles/shell/shell_aliases
-fi
+[[ -f ~/.shell_aliases ]] && source ~/.shell_aliases

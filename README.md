@@ -1,35 +1,36 @@
-# dot files
+# dotfiles
 ![](screenshot.png)
 
-## Prerequisites
-Install [iTerm2](https://www.iterm2.com/)
+## Stack
+- **Terminal**: [Ghostty](https://ghostty.org)
+- **Shell**: zsh
+- **Prompt**: [Starship](https://starship.rs)
+- **Plugins**: zsh-syntax-highlighting, zsh-autosuggestions, zsh-completions, zsh-history-substring-search, fzf
 
 ## Installation
-Install and setup by cloning this repository and running the setup script.
 ```bash
 git clone https://github.com/cgoldsby/dotfiles.git ~/Sources/dotfiles
+cd ~/Sources/dotfiles && ./install.sh
 ```
-To bootstrap or update:
+
+For macOS system settings (dock, finder, wallpaper, dark mode):
 ```bash
-~/Sources/dotfiles/setup.sh
+./install.sh --macos
 ```
-### What does the setup script do?
-- installs zsh; if needed
-- install or update homebrew
-- install or update [m-cli](https://github.com/rgcr/m-cli)
-- configures zprezto theme
-- configures iTerm App preferences & theme
-- configures shell .bashrc and .zschrc
-- configures vim
-- configures Terminal App preferences
-- sets desktop wallpaper
-- sets macOS to dark mode
-- show ~/Library/ in Finder
-- show extensions in Finder
-- set up dock on the bottom with no magnification & autohide turned off
-- set up git aliases
+
+### What does the install script do?
+- Installs Homebrew if missing
+- Installs NVM if missing
+- Installs via Homebrew: Ghostty, Starship, zsh plugins, fzf, rbenv, m-cli, mole (Mac deep cleaner)
+- Installs Claude Code CLI via npm
+- Symlinks `.zshrc`, `.shell_aliases`, `starship.toml`, Ghostty config
+- Copies Ghostty icons to `~/.config/ghostty/`
+- Configures vim
+- Sets up git aliases (`git sl`)
+- *(--macos)* Sets desktop wallpaper, dark mode, Finder and Dock preferences
 
 ## Manual Steps
-* Copy GPG keys for github
+- Copy GPG keys for GitHub
+- Log in to Claude Code: `claude login`
 
-🌟 Special thanks to [@dcordero](https://github.com/dcordero) who inspired me to get my dotfiles affairs in order. Don't forget to checkout his [dotfiles](https://github.com/dcordero/dotFiles) setup.
+🌟 Special thanks to [@dcordero](https://github.com/dcordero) who inspired me to get my dotfiles affairs in order.

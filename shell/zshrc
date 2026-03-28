@@ -1,55 +1,99 @@
-#
-# Executes commands at the start of an interactive session.
-#
-# Authors:
-#   Sorin Ionescu <sorin.ionescu@gmail.com>
-#
+# Zsh Options
+setopt AUTO_PUSHD PUSHD_IGNORE_DUPS EXTENDED_GLOB INTERACTIVE_COMMENTS
 
-# Source Prezto.
-if [[ -s "${ZDOTDIR:-$HOME}/.zprezto/init.zsh" ]]; then
-  source "${ZDOTDIR:-$HOME}/.zprezto/init.zsh"
-fi
+# History
+HISTFILE="$HOME/.zsh_history"
+HISTSIZE=10000
+SAVEHIST=10000
+setopt HIST_IGNORE_DUPS HIST_IGNORE_SPACE SHARE_HISTORY
 
-# Customize to your needs...
+# Keybindings (emacs mode)
+bindkey -e
 
-[[ -e ~/Sources/dotfiles/shell/shell_aliases ]] && emulate sh -c 'source ~/Sources/dotfiles/shell/shell_aliases'
-[[ -e ~/.bash_profile ]] && emulate sh -c 'source ~/.bash_profile'
-
-export EDITOR='vim'
-export VISUAL='vim'
-
-#expose Homebrew to our PATH variable in ZSH.
+# PATH
 export PATH=/opt/homebrew/bin:$PATH
-
-# Ruby
 export PATH="$HOME/.rbenv/bin:$PATH"
 export PATH="$HOME/.rbenv/shims:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
 
-# export NVM_DIR="$HOME/.nvm"
-# [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-# [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+# Completion
+if type brew &>/dev/null; then
+  FPATH=/opt/homebrew/share/zsh-completions:$FPATH
+fi
+autoload -Uz compinit
+if [[ -n "$HOME/.zcompdump"(#qN.mh+24) ]]; then
+  compinit
+else
+  compinit -C
+fi
 
-# # place this after nvm initialization!
-# autoload -U add-zsh-hook
+# Environment
+export EDITOR='vim'
+export VISUAL='vim'
+export CLICOLOR=1
+export GPG_TTY=$(tty)
 
-# load-nvmrc() {
-#   local nvmrc_path
-#   nvmrc_path="$(nvm_find_nvmrc)"
+# NVM
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"
+[ -s "$NVM_DIR/bash_completion" ] && source "$NVM_DIR/bash_completion"
 
-#   if [ -n "$nvmrc_path" ]; then
-#     local nvmrc_node_version
-#     nvmrc_node_version=$(nvm version "$(cat "${nvmrc_path}")")
+# Aliases
+[[ -f ~/.shell_aliases ]] && source ~/.shell_aliases
+alias cc='claude'
 
-#     if [ "$nvmrc_node_version" = "N/A" ]; then
-#       nvm install
-#     elif [ "$nvmrc_node_version" != "$(nvm version)" ]; then
-#       nvm use
-#     fi
-#   elif [ -n "$(PWD=$OLDPWD nvm_find_nvmrc)" ] && [ "$(nvm version)" != "$(nvm version default)" ]; then
-#     echo "Reverting to nvm default version"
-#     nvm use default
-#   fi
-# }
+# Plugins
+[[ -f /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]] && \
+  source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+ZSH_HIGHLIGHT_STYLES[path]='none'
+ZSH_HIGHLIGHT_STYLES[path_prefix]='none'
 
-# add-zsh-hook chpwd load-nvmrc
-# load-nvmrc
+[[ -f /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]] && \
+  source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+
+[[ -f /opt/homebrew/share/zsh-history-substring-search/zsh-history-substring-search.zsh ]] && \
+  source /opt/homebrew/share/zsh-history-substring-search/zsh-history-substring-search.zsh && \
+  bindkey '^[[A' history-substring-search-up && \
+  bindkey '^[[B' history-substring-search-down
+
+[[ -f /opt/homebrew/opt/fzf/shell/key-bindings.zsh ]] && \
+  source /opt/homebrew/opt/fzf/shell/key-bindings.zsh
+
+[[ -f /opt/homebrew/opt/fzf/shell/completion.zsh ]] && \
+  source /opt/homebrew/opt/fzf/shell/completion.zsh
+
+# Hooks
+autoload -U add-zsh-hook
+
+# NVM: auto-switch node version on directory change
+load-nvmrc() {
+  local nvmrc_path
+  nvmrc_path="$(nvm_find_nvmrc)"
+
+  if [[ -n "$nvmrc_path" ]]; then
+    local nvmrc_node_version
+    nvmrc_node_version=$(nvm version "$(cat "${nvmrc_path}")")
+
+    if [[ "$nvmrc_node_version" == "N/A" ]]; then
+      nvm install
+    elif [[ "$nvmrc_node_version" != "$(nvm version)" ]]; then
+      nvm use
+    fi
+  elif [[ -n "$(PWD=$OLDPWD nvm_find_nvmrc)" ]] && [[ "$(nvm version)" != "$(nvm version default)" ]]; then
+    echo "Reverting to nvm default version"
+    nvm use default
+  fi
+}
+add-zsh-hook chpwd load-nvmrc
+load-nvmrc
+
+
+# Cursor — steady block
+function zle-line-init() { echo -ne '\e[2 q'; }
+zle -N zle-line-init
+
+# Prompt
+command -v starship &>/dev/null && eval "$(starship init zsh)"
+
+# Local overrides (machine-specific, not tracked)
+[[ -f ~/.zshrc.local ]] && source ~/.zshrc.local

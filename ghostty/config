@@ -1,0 +1,48 @@
+# Ghostty Configuration
+
+# Font
+font-family = "JetBrainsMono NFM Regular"
+font-size = 12
+adjust-cell-height = 35%
+font-feature = calt
+font-feature = liga
+
+# Theme
+theme = Dracula
+
+# Cursor
+cursor-style = block
+
+# Shell
+shell-integration = detect
+
+# Resize
+resize-overlay = never
+
+# Window
+window-padding-x = 10
+window-padding-y = 10
+window-padding-balance = true
+window-colorspace = "display-p3"
+window-save-state = always
+window-decoration = true
+window-inherit-working-directory = true
+
+# Background
+#background-opacity = 0.8
+#background-blur = 90
+
+# macOS
+macos-option-as-alt = true
+macos-icon = custom
+macos-custom-icon = ~/.config/ghostty/ghostty-dracula.icns
+macos-titlebar-style = transparent
+macos-titlebar-proxy-icon = hidden
+
+# Behavior
+link-url = false
+copy-on-select = clipboard
+mouse-scroll-multiplier = 2
+scrollback-limit = 100000
+confirm-close-surface = false
+quit-after-last-window-closed = true
