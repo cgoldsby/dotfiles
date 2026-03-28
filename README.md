@@ -33,4 +33,11 @@ For macOS system settings (dock, finder, wallpaper, dark mode):
 - Copy GPG keys for GitHub
 - Log in to Claude Code: `claude login`
 
-🌟 Special thanks to [@dcordero](https://github.com/dcordero) who inspired me to get my dotfiles affairs in order.
+## Migrating from zprezto
+If coming from the old zprezto setup, remove it first:
+```bash
+rm -rf ~/.zprezto
+rm -f ~/.zpreztorc ~/.zprofile ~/.zlogin ~/.zlogout ~/.zshenv
+```
+
+🌟 Special thanks to [@dcordero](https://github.com/dcordero) who inspired me to get my dotfiles affairs in order. Don't forget to checkout his [dotfiles](https://github.com/dcordero/dotFiles) setup.
