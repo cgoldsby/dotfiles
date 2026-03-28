@@ -22,7 +22,7 @@ For macOS system settings (dock, finder, wallpaper, dark mode):
 - Installs Homebrew if missing
 - Installs NVM if missing
 - Installs via Homebrew: Ghostty, Starship, zsh plugins, fzf, rbenv, m-cli, mole (Mac deep cleaner)
-- Installs Claude Code CLI via npm
+- Installs Claude Code CLI via native installer
 - Symlinks `.zshrc`, `.shell_aliases`, `starship.toml`, Ghostty config
 - Copies Ghostty icons to `~/.config/ghostty/`
 - Configures vim

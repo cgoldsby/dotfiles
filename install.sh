@@ -78,7 +78,7 @@ setup_tools() {
 setup_claude() {
   if ! command -v claude &>/dev/null; then
     log_warn "Installing Claude Code..."
-    npm install -g @anthropic-ai/claude-code
+    curl -fsSL https://claude.ai/install.sh | bash
   fi
   log_ok "claude"
 }
