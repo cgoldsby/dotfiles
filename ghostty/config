@@ -8,7 +8,7 @@ font-feature = calt
 font-feature = liga
 
 # Theme
-theme = Dracula
+theme = "Catppuccin Mocha"
 
 # Cursor
 cursor-style = block

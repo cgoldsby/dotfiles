@@ -26,9 +26,9 @@ show_always = false
 # Character
 # -----------------------------------------------------------------------------
 [character]
-success_symbol = '[❯](bold green)'
-error_symbol   = '[❯](bold red)'
-vimcmd_symbol  = '[❮](bold green)'
+success_symbol = '[❯](bold red)[❯](bold yellow)[❯](bold green)'
+error_symbol   = '[❯❯❯](bold red)'
+vimcmd_symbol  = '[❮❮❮](bold green)'
 
 # -----------------------------------------------------------------------------
 # Directory

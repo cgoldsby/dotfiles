@@ -87,8 +87,17 @@ setup_claude() {
 setup_shell() {
   symlink "$DOTFILES/shell/zshrc"         "$HOME/.zshrc"
   symlink "$DOTFILES/shell/shell_aliases" "$HOME/.shell_aliases"
-  if [[ "$SHELL" != "$(which zsh)" ]]; then
-    chsh -s "$(which zsh)"
+  
+  local zsh_path="$(which zsh)"
+  if [[ "$SHELL" != "$zsh_path" ]]; then
+    # Add zsh to /etc/shells if it's not already there
+    if ! grep -q "^$zsh_path$" /etc/shells; then
+      log_warn "Adding $zsh_path to /etc/shells (requires sudo)"
+      echo "$zsh_path" | sudo tee -a /etc/shells >/dev/null
+    fi
+    
+    echo "Changing shell for $(whoami)."
+    chsh -s "$zsh_path"
     log_ok "Set zsh as default shell"
   fi
 }
