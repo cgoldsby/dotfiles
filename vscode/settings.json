@@ -1,0 +1,31 @@
+{
+  "workbench.colorTheme": "Catppuccin Mocha",
+  "editor.fontFamily": "JetBrainsMono NFM, JetBrains Mono, Menlo, monospace",
+  "editor.fontSize": 12,
+  "editor.fontLigatures": true,
+  "editor.lineHeight": 1.5,
+  "editor.multiCursorModifier": "ctrlCmd",
+  "workbench.editor.enablePreview": false,
+  "workbench.colorCustomizations": {
+    "[Catppuccin Mocha]": {
+      "titleBar.activeBackground": "#1e1e2e",
+      "titleBar.inactiveBackground": "#1e1e2e",
+      "activityBar.background": "#1e1e2e",
+      "sideBar.background": "#1e1e2e",
+      "sideBarSectionHeader.background": "#1e1e2e",
+      "panel.background": "#1e1e2e",
+      "editorGroupHeader.tabsBackground": "#1e1e2e",
+      "editorGroupHeader.tabsBorder": "#1e1e2e",
+      "tab.inactiveBackground": "#1e1e2e",
+      "tab.border": "#1e1e2e",
+      "tab.activeBorder": "#cba6f7",
+      "breadcrumb.background": "#1e1e2e",
+      "editorPane.background": "#1e1e2e",
+      "minimap.background": "#1e1e2e",
+      "statusBar.background": "#1e1e2e",
+      "statusBar.noFolderBackground": "#1e1e2e",
+      "statusBar.foreground": "#cdd6f4",
+      "statusBarItem.remoteBackground": "#1e1e2e"
+    }
+  }
+}

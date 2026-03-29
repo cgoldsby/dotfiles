@@ -35,7 +35,7 @@ window-inherit-working-directory = true
 # macOS
 macos-option-as-alt = true
 macos-icon = custom
-macos-custom-icon = ~/.config/ghostty/ghostty-dracula.icns
+macos-custom-icon = ~/.config/ghostty/catppuccin-mocha.icns
 macos-titlebar-style = transparent
 macos-titlebar-proxy-icon = hidden
 

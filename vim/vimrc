@@ -7,14 +7,14 @@ set autoread
 " Ignore case when searching
 set ignorecase
 
-" When searching try to be smart about cases 
+" When searching try to be smart about cases
 set smartcase
 
 " Highlight search results
 set hlsearch
 
 " Makes search act like search in modern browsers
-set incsearch 
+set incsearch
 
 " Set utf8 as standard encoding and en_US as the standard language
 set encoding=utf8
@@ -44,12 +44,12 @@ set mouse=a
 " Line numbers
 set number
 
-" Custom colorscheme
-colorscheme monokai
+" Colorscheme
+colorscheme catppuccin_mocha
 
 set background=dark
 
-set guifont=Monaco:h14
+set guifont=JetBrainsMono\ NFM:h12
 
 syntax on
 

@@ -56,11 +56,8 @@ ZSH_HIGHLIGHT_STYLES[path_prefix]='none'
   bindkey '^[[A' history-substring-search-up && \
   bindkey '^[[B' history-substring-search-down
 
-[[ -f /opt/homebrew/opt/fzf/shell/key-bindings.zsh ]] && \
-  source /opt/homebrew/opt/fzf/shell/key-bindings.zsh
-
-[[ -f /opt/homebrew/opt/fzf/shell/completion.zsh ]] && \
-  source /opt/homebrew/opt/fzf/shell/completion.zsh
+# fzf key bindings and fuzzy completion
+source <(fzf --zsh)
 
 # Hooks
 autoload -U add-zsh-hook

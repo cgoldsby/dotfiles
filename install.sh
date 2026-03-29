@@ -44,34 +44,8 @@ setup_nvm() {
 
 # Tools
 setup_tools() {
-  local casks=(
-    ghostty
-  )
-  local formulae=(
-    starship
-    zsh-syntax-highlighting
-    zsh-autosuggestions
-    zsh-completions
-    zsh-history-substring-search
-    fzf
-    rbenv
-    m-cli
-    mole
-  )
-
-  for cask in "${casks[@]}"; do
-    if ! brew list --cask "$cask" &>/dev/null; then
-      brew install --cask --force "$cask"
-    fi
-    log_ok "$cask"
-  done
-
-  for formula in "${formulae[@]}"; do
-    if ! brew list "$formula" &>/dev/null; then
-      brew install "$formula"
-    fi
-    log_ok "$formula"
-  done
+  brew bundle --file="$DOTFILES/Brewfile"
+  log_ok "Homebrew packages"
 }
 
 # Claude Code CLI
@@ -125,6 +99,7 @@ setup_vim() {
   mkdir -p "$HOME/.vim/colors"
   cp -af "$DOTFILES/vim/colors/"*.vim "$HOME/.vim/colors/"
   symlink "$DOTFILES/vim/vimrc" "$HOME/.vimrc"
+  log_ok "Vim"
 }
 
 # Git aliases
@@ -148,13 +123,45 @@ setup_macos() {
 }
 
 setup_desktop() {
-  local wallpaper="$DOTFILES/desktop/Monterey Graphic.heic"
+  local wallpaper="$DOTFILES/desktop/time-forest-fire-watch-tower.heic"
   if [[ -f "$wallpaper" ]]; then
     osascript -e "tell application \"Finder\" to set desktop picture to POSIX file \"${wallpaper}\""
     osascript -e "tell application \"System Events\" to tell appearance preferences to set dark mode to true"
     log_ok "Desktop wallpaper"
   else
     log_warn "Wallpaper not found: $wallpaper"
+  fi
+}
+
+# VS Code
+setup_vscode() {
+  local vscode_user="$HOME/Library/Application Support/Code/User"
+  local live="$vscode_user/settings.json"
+  local portable="$DOTFILES/vscode/settings.json"
+  mkdir -p "$vscode_user"
+  if [[ -f "$live" ]]; then
+    # Normalize JSONC → JSON (strip comments + trailing commas) before merging
+    python3 -c "
+import json, re, sys
+content = open(sys.argv[1]).read()
+content = re.sub(r'//[^\n]*', '', content)           # // line comments
+content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)  # /* block comments */
+content = re.sub(r',(\s*[}\]])', r'\1', content)     # trailing commas
+print(json.dumps(json.loads(content)))
+" "$live" | jq -s '.[0] * .[1]' - "$portable" > /tmp/vscode_settings.json \
+      && mv /tmp/vscode_settings.json "$live"
+  else
+    cp "$portable" "$live"
+  fi
+  log_ok "VS Code settings"
+  if command -v code &>/dev/null; then
+    while IFS= read -r ext; do
+      [[ -z "$ext" || "$ext" == \#* ]] && continue
+      code --install-extension "$ext" --force 2>/dev/null
+    done < "$DOTFILES/vscode/extensions.txt"
+    log_ok "VS Code extensions"
+  else
+    log_warn "VS Code CLI (code) not found — skipping extensions"
   fi
 }
 
@@ -171,6 +178,7 @@ main() {
   setup_starship
   setup_ghostty
   setup_vim
+  setup_vscode
   setup_git
 
   if [[ "${1:-}" == "--macos" ]]; then

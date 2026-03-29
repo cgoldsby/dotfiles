@@ -13,8 +13,12 @@ Personal dotfiles for macOS. Managed via symlinks — edits to `~/.zshrc`, `~/.c
 | Starship | `starship/starship.toml` | `~/.config/starship.toml` |
 | Ghostty | `ghostty/config` | `~/.config/ghostty/config` |
 | Vim | `vim/vimrc` | `~/.vimrc` |
+| VS Code settings | `vscode/settings.json` | merged into `~/Library/Application Support/Code/User/settings.json` via install.sh |
+| VS Code extensions | `vscode/extensions.txt` | installed via `code --install-extension` |
 
 Ghostty icons (`*.icns`) are **copied**, not symlinked — they're referenced by absolute path in the Ghostty config.
+
+VS Code settings are **merged** (not symlinked) — `install.sh` uses `jq` to layer portable prefs on top of the live file, preserving any machine-specific keys. The live file is normalized from JSONC to JSON first (strips `//` comments, `/* */` block comments, and trailing commas). If the merge fails, check that `settings.json` doesn't have malformed JSON.
 
 `~/.zshrc.local` is machine-specific and intentionally not tracked.
 
@@ -23,7 +27,7 @@ Ghostty icons (`*.icns`) are **copied**, not symlinked — they're referenced by
 **Keep README and install.sh in sync.** Any tool added to `install.sh` must be reflected in the README's install steps, and vice versa.
 
 **Adding a Homebrew tool:**
-1. Add to the `formulae` or `casks` array in `setup_tools()` — one per line, alphabetical within group
+1. Add a `brew` or `cask` line to `Brewfile` — alphabetical within group
 2. Update the README install steps
 
 **Adding a tool that needs its own setup:**
