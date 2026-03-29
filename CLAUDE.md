@@ -13,6 +13,7 @@ Personal dotfiles for macOS. Managed via symlinks — edits to `~/.zshrc`, `~/.c
 | Starship | `starship/starship.toml` | `~/.config/starship.toml` |
 | Ghostty | `ghostty/config` | `~/.config/ghostty/config` |
 | Vim | `vim/vimrc` | `~/.vimrc` |
+| SSH | `ssh/config` | `~/.ssh/config` |
 | VS Code settings | `vscode/settings.json` | merged into `~/Library/Application Support/Code/User/settings.json` via install.sh |
 | VS Code extensions | `vscode/extensions.txt` | installed via `code --install-extension` |
 
