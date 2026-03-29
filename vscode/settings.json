@@ -1,5 +1,6 @@
 {
   "workbench.colorTheme": "Catppuccin Mocha",
+  "workbench.iconTheme": "catppuccin-mocha",
   "editor.fontFamily": "JetBrainsMono NFM, JetBrains Mono, Menlo, monospace",
   "editor.fontSize": 12,
   "editor.fontLigatures": true,

@@ -1,1 +1,2 @@
 catppuccin.catppuccin-vsc
+Catppuccin.catppuccin-vsc-icons
