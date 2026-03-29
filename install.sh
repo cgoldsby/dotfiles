@@ -29,6 +29,10 @@ setup_homebrew() {
     log_warn "Installing Homebrew..."
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   fi
+  # Fix zsh "insecure directories" warning from compinit
+  if [[ -d /opt/homebrew/share ]]; then
+    chmod -R g-w /opt/homebrew/share
+  fi
   brew update --quiet
   log_ok "Homebrew ready"
 }
