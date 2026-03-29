@@ -102,6 +102,15 @@ setup_vim() {
   log_ok "Vim"
 }
 
+# SSH
+setup_ssh() {
+  mkdir -p "$HOME/.ssh"
+  chmod 700 "$HOME/.ssh"
+  symlink "$DOTFILES/ssh/config" "$HOME/.ssh/config"
+  chmod 600 "$HOME/.ssh/config"
+  log_ok "SSH config"
+}
+
 # Git aliases
 setup_git() {
   git config --global alias.smartlog \
@@ -179,6 +188,7 @@ main() {
   setup_ghostty
   setup_vim
   setup_vscode
+  setup_ssh
   setup_git
 
   if [[ "${1:-}" == "--macos" ]]; then
