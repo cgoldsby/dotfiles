@@ -6,6 +6,7 @@ alias ~="cd ~"                              # ~:	Go Home
 alias c='clear'                             # c:	Clear terminal display
 
 # Git
+alias gbc='git checkout -b'                                                             # Create and checkout new branch
 alias prune='git branch --merged | grep -v "^\s*[*+]" | xargs -n 1 git branch -d'     # Prune merged branches
 
 # Development
