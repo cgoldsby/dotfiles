@@ -136,7 +136,7 @@ setup_macos() {
 }
 
 setup_desktop() {
-  local wallpaper="$DOTFILES/desktop/time-forest-fire-watch-tower.heic"
+  local wallpaper="$DOTFILES/desktop/time-exodus-rockets.heic"
   if [[ -f "$wallpaper" ]]; then
     osascript -e "tell application \"Finder\" to set desktop picture to POSIX file \"${wallpaper}\""
     osascript -e "tell application \"System Events\" to tell appearance preferences to set dark mode to true"
