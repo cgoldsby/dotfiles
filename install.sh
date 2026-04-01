@@ -98,6 +98,19 @@ setup_ghostty() {
   symlink "$DOTFILES/ghostty/config" "$HOME/.config/ghostty/config"
 }
 
+# Ghostty terminfo — needed so remote machines can handle TERM=xterm-ghostty over SSH
+setup_ghostty_terminfo() {
+  local terminfo_src="/Applications/Ghostty.app/Contents/Resources/terminfo"
+  if [[ ! -d "$terminfo_src" ]]; then
+    log_warn "Ghostty terminfo source not found — skipping"
+    return
+  fi
+  mkdir -p "$HOME/.terminfo/78" "$HOME/.terminfo/67"
+  cp -f "$terminfo_src/78/xterm-ghostty" "$HOME/.terminfo/78/"
+  cp -f "$terminfo_src/67/ghostty"       "$HOME/.terminfo/67/"
+  log_ok "Ghostty terminfo"
+}
+
 # Vim
 setup_vim() {
   mkdir -p "$HOME/.vim/colors"
@@ -190,6 +203,7 @@ main() {
   setup_shell
   setup_starship
   setup_ghostty
+  setup_ghostty_terminfo
   setup_vim
   setup_vscode
   setup_ssh
