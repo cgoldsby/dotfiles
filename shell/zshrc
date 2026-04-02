@@ -9,6 +9,7 @@ setopt HIST_IGNORE_DUPS HIST_IGNORE_SPACE SHARE_HISTORY
 
 # Keybindings (emacs mode)
 bindkey -e
+zle -N self-insert-newline
 bindkey $'\e[13;2u' self-insert-newline  # Shift+Enter → newline (kitty keyboard protocol)
 
 # PATH
