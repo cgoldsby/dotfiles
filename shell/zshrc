@@ -9,8 +9,10 @@ setopt HIST_IGNORE_DUPS HIST_IGNORE_SPACE SHARE_HISTORY
 
 # Keybindings (emacs mode)
 bindkey -e
+self-insert-newline() { LBUFFER+=$'\n' }
 zle -N self-insert-newline
-bindkey $'\e[13;2u' self-insert-newline  # Shift+Enter → newline (kitty keyboard protocol)
+bindkey $'\e[13;2u'    self-insert-newline  # Shift+Enter → newline (kitty keyboard protocol)
+bindkey $'\e[27;2;13~' self-insert-newline  # Shift+Enter → newline (modifyOtherKeys/xterm)
 
 # PATH
 export PATH=/opt/homebrew/bin:$PATH
