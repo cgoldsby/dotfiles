@@ -1,1 +1,5 @@
 [[ -f ~/.shell_aliases ]] && source ~/.shell_aliases
+
+# Local overrides (machine-specific, not tracked)
+[[ -f ~/.bashrc.local ]] && source ~/.bashrc.local
+

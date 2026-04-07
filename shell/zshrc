@@ -148,3 +148,4 @@ command -v starship &>/dev/null && eval "$(starship init zsh)"
 
 # Local overrides (machine-specific, not tracked)
 [[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
+
