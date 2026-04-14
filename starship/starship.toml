@@ -10,7 +10,6 @@ $git_branch\
 $git_status\
 $git_state\
 $cmd_duration\
-$sudo\
 $character"""
 
 add_newline = false
@@ -46,15 +45,6 @@ format = '[$path]($style) '
 min_time = 2000
 style    = 'overlay0'
 format   = '[$duration]($style) '
-
-# -----------------------------------------------------------------------------
-# Sudo — shown when sudo credentials are cached
-# -----------------------------------------------------------------------------
-[sudo]
-disabled = false
-symbol   = '⚡'
-style    = 'bold peach'
-format   = '[$symbol]($style) '
 
 # -----------------------------------------------------------------------------
 # Git Branch
