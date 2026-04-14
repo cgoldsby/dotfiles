@@ -18,16 +18,25 @@ For macOS system settings (dock, finder, wallpaper, dark mode):
 ./install.sh --macos
 ```
 
+To install or update Xcode (interactive — prompts for version, handles old versions, SDKs, and simulators):
+```bash
+./install.sh --xcode
+# or run standalone:
+./setup_xcode.sh
+```
+
+
 ### What does the install script do?
 - Installs Homebrew if missing
 - Installs NVM if missing
-- Installs via Homebrew: Ghostty, Starship, zsh plugins, fzf, rbenv, m-cli, mole (Mac deep cleaner)
+- Installs via Homebrew: Ghostty, Starship, zsh plugins, fzf, rbenv, xcodes, m-cli, mole (Mac deep cleaner)
 - Installs Claude Code CLI via native installer
 - Symlinks `.zshrc`, `.shell_aliases`, `starship.toml`, Ghostty config, SSH config
 - Copies Ghostty icons to `~/.config/ghostty/`
 - Configures vim
 - Sets up git aliases (`git sl`)
 - *(--macos)* Sets desktop wallpaper, dark mode, Finder and Dock preferences
+- *(--xcode)* Interactive Xcode installer: prompts for version, removes old versions, downloads via xcodes, installs iOS/tvOS SDKs, creates iPhone 17 and Apple TV simulators
 
 ## Manual Steps
 - Copy GPG keys for GitHub

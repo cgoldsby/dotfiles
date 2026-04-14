@@ -6,12 +6,15 @@ set -e
 DOTFILES="$(cd "$(dirname "$0")" && pwd)"
 GREEN='\033[1;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[1;34m'
+BOLD='\033[1m'
 CLEAR='\033[0m'
 
-log_ok()   { echo -e "${GREEN}✓${CLEAR} $1"; }
-log_warn() { echo -e "${YELLOW}!${CLEAR} $1"; }
+log_ok()      { echo -e "${GREEN}✓${CLEAR} $1"; }
+log_warn()    { echo -e "${YELLOW}!${CLEAR} $1"; }
+log_info()    { echo -e "${BLUE}›${CLEAR} $1"; }
+log_section() { echo -e "\n${BOLD}=> $1${CLEAR}"; }
 
-# Create a symlink, backing up any existing non-symlink file
 symlink() {
   local src="$1" dst="$2"
   mkdir -p "$(dirname "$dst")"
@@ -23,70 +26,61 @@ symlink() {
   log_ok "Linked $(basename "$dst")"
 }
 
-# Homebrew
 setup_homebrew() {
   if ! command -v brew &>/dev/null; then
-    log_warn "Installing Homebrew..."
+    log_info "Installing Homebrew..."
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   fi
-  # Fix zsh "insecure directories" warning from compinit
   if [[ -d /opt/homebrew/share ]]; then
     chmod -R g-w /opt/homebrew/share
   fi
   brew update --quiet
-  log_ok "Homebrew ready"
+  log_ok "Homebrew"
 }
 
-# NVM
 setup_nvm() {
   if [[ ! -d "$HOME/.nvm" ]]; then
-    log_warn "Installing NVM..."
+    log_info "Installing NVM..."
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/HEAD/install.sh | bash
   fi
-  log_ok "nvm"
+  log_ok "NVM"
 }
 
-# Tools
 setup_tools() {
   brew bundle --file="$DOTFILES/Brewfile"
   log_ok "Homebrew packages"
 }
 
-# Claude Code CLI
 setup_claude() {
   if ! command -v claude &>/dev/null; then
-    log_warn "Installing Claude Code..."
+    log_info "Installing Claude Code..."
     curl -fsSL https://claude.ai/install.sh | bash
   fi
-  log_ok "claude"
+  log_ok "Claude Code"
 }
 
-# Shell
 setup_shell() {
   symlink "$DOTFILES/shell/zshrc"                "$HOME/.zshrc"
   symlink "$DOTFILES/shell/shell_aliases"        "$HOME/.shell_aliases"
   symlink "$DOTFILES/shell/zsh_highlight_styles" "$HOME/.zsh_highlight_styles"
-  
-  local zsh_path="$(which zsh)"
+
+  local zsh_path
+  zsh_path="$(which zsh)"
   if [[ "$SHELL" != "$zsh_path" ]]; then
-    # Add zsh to /etc/shells if it's not already there
     if ! grep -q "^$zsh_path$" /etc/shells; then
-      log_warn "Adding $zsh_path to /etc/shells (requires sudo)"
+      log_info "Adding $zsh_path to /etc/shells (requires sudo)"
       echo "$zsh_path" | sudo tee -a /etc/shells >/dev/null
     fi
-    
-    echo "Changing shell for $(whoami)."
     chsh -s "$zsh_path"
-    log_ok "Set zsh as default shell"
+    log_ok "Default shell → zsh"
   fi
 }
 
-# Starship
 setup_starship() {
   symlink "$DOTFILES/starship/starship.toml" "$HOME/.config/starship.toml"
+  log_ok "Starship"
 }
 
-# Ghostty
 setup_ghostty() {
   mkdir -p "$HOME/.config/ghostty"
   local icons=("$DOTFILES/ghostty/"*.icns)
@@ -99,7 +93,6 @@ setup_ghostty() {
   symlink "$DOTFILES/ghostty/config" "$HOME/.config/ghostty/config"
 }
 
-# Ghostty terminfo — needed so remote machines can handle TERM=xterm-ghostty over SSH
 setup_ghostty_terminfo() {
   local terminfo_src="/Applications/Ghostty.app/Contents/Resources/terminfo"
   if [[ ! -d "$terminfo_src" ]]; then
@@ -112,7 +105,6 @@ setup_ghostty_terminfo() {
   log_ok "Ghostty terminfo"
 }
 
-# Vim
 setup_vim() {
   mkdir -p "$HOME/.vim/colors"
   cp -af "$DOTFILES/vim/colors/"*.vim "$HOME/.vim/colors/"
@@ -120,7 +112,36 @@ setup_vim() {
   log_ok "Vim"
 }
 
-# SSH
+setup_vscode() {
+  local vscode_user="$HOME/Library/Application Support/Code/User"
+  local live="$vscode_user/settings.json"
+  local portable="$DOTFILES/vscode/settings.json"
+  mkdir -p "$vscode_user"
+  if [[ -f "$live" ]]; then
+    python3 -c "
+import json, re, sys
+content = open(sys.argv[1]).read()
+content = re.sub(r'//[^\n]*', '', content)
+content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
+content = re.sub(r',(\s*[}\]])', r'\1', content)
+print(json.dumps(json.loads(content)))
+" "$live" | jq -s '.[0] * .[1]' - "$portable" > /tmp/vscode_settings.json \
+      && mv /tmp/vscode_settings.json "$live"
+  else
+    cp "$portable" "$live"
+  fi
+  log_ok "VS Code settings"
+  if command -v code &>/dev/null; then
+    while IFS= read -r ext; do
+      [[ -z "$ext" || "$ext" == \#* ]] && continue
+      code --install-extension "$ext" --force 2>/dev/null
+    done < "$DOTFILES/vscode/extensions.txt"
+    log_ok "VS Code extensions"
+  else
+    log_warn "VS Code CLI (code) not found — skipping extensions"
+  fi
+}
+
 setup_ssh() {
   mkdir -p "$HOME/.ssh"
   chmod 700 "$HOME/.ssh"
@@ -129,7 +150,6 @@ setup_ssh() {
   log_ok "SSH config"
 }
 
-# Git aliases
 setup_git() {
   git config --global alias.smartlog \
     "log --graph --pretty=format:'commit: %C(bold red)%h%Creset %C(red)<%H>%Creset %C(bold magenta)%d %Creset%ndate: %C(bold yellow)%cd %Creset%C(yellow)%cr%Creset%nauthor: %C(bold blue)%an%Creset %C(blue)<%ae>%Creset%n%C(cyan)%s%n%Creset'"
@@ -137,7 +157,6 @@ setup_git() {
   log_ok "Git aliases"
 }
 
-# macOS system settings (opt-in via --macos)
 setup_macos() {
   chflags nohidden ~/Library/
   defaults write com.apple.finder AppleShowAllExtensions -bool true
@@ -160,47 +179,24 @@ setup_desktop() {
   fi
 }
 
-# VS Code
-setup_vscode() {
-  local vscode_user="$HOME/Library/Application Support/Code/User"
-  local live="$vscode_user/settings.json"
-  local portable="$DOTFILES/vscode/settings.json"
-  mkdir -p "$vscode_user"
-  if [[ -f "$live" ]]; then
-    # Normalize JSONC → JSON (strip comments + trailing commas) before merging
-    python3 -c "
-import json, re, sys
-content = open(sys.argv[1]).read()
-content = re.sub(r'//[^\n]*', '', content)           # // line comments
-content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)  # /* block comments */
-content = re.sub(r',(\s*[}\]])', r'\1', content)     # trailing commas
-print(json.dumps(json.loads(content)))
-" "$live" | jq -s '.[0] * .[1]' - "$portable" > /tmp/vscode_settings.json \
-      && mv /tmp/vscode_settings.json "$live"
-  else
-    cp "$portable" "$live"
-  fi
-  log_ok "VS Code settings"
-  if command -v code &>/dev/null; then
-    while IFS= read -r ext; do
-      [[ -z "$ext" || "$ext" == \#* ]] && continue
-      code --install-extension "$ext" --force 2>/dev/null
-    done < "$DOTFILES/vscode/extensions.txt"
-    log_ok "VS Code extensions"
-  else
-    log_warn "VS Code CLI (code) not found — skipping extensions"
-  fi
-}
-
-# Main
 main() {
-  echo "Installing dotfiles from $DOTFILES"
-  echo ""
+  local do_macos=false do_xcode=false
+  for arg in "$@"; do
+    case "$arg" in
+      --macos) do_macos=true ;;
+      --xcode) do_xcode=true ;;
+    esac
+  done
 
+  echo "Installing dotfiles from $DOTFILES"
+
+  log_section "Bootstrap"
   setup_homebrew
   setup_nvm
   setup_tools
   setup_claude
+
+  log_section "Dotfiles"
   setup_shell
   setup_starship
   setup_ghostty
@@ -210,9 +206,14 @@ main() {
   setup_ssh
   setup_git
 
-  if [[ "${1:-}" == "--macos" ]]; then
+  if $do_macos; then
+    log_section "macOS"
     setup_macos
     setup_desktop
+  fi
+
+  if $do_xcode; then
+    "$DOTFILES/setup_xcode.sh"
   fi
 
   echo ""

@@ -1,10 +1,12 @@
 # Formulae
+brew "aria2"
 brew "fzf"
 brew "jq"
 brew "m-cli"
 brew "mole"
 brew "rbenv"
 brew "starship"
+brew "xcodes"
 brew "zsh-autosuggestions"
 brew "zsh-completions"
 brew "zsh-history-substring-search"
