@@ -63,8 +63,9 @@ setup_claude() {
 
 # Shell
 setup_shell() {
-  symlink "$DOTFILES/shell/zshrc"         "$HOME/.zshrc"
-  symlink "$DOTFILES/shell/shell_aliases" "$HOME/.shell_aliases"
+  symlink "$DOTFILES/shell/zshrc"                "$HOME/.zshrc"
+  symlink "$DOTFILES/shell/shell_aliases"        "$HOME/.shell_aliases"
+  symlink "$DOTFILES/shell/zsh_highlight_styles" "$HOME/.zsh_highlight_styles"
   
   local zsh_path="$(which zsh)"
   if [[ "$SHELL" != "$zsh_path" ]]; then
