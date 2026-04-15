@@ -221,9 +221,9 @@ install_platforms() {
 }
 
 setup_simulators() {
-  log_info "Removing unavailable simulators..."
-  xcrun simctl delete unavailable
-  log_ok "Unavailable simulators removed"
+  log_info "Removing all simulators..."
+  xcrun simctl delete all
+  log_ok "All simulators removed"
 
   local ios_runtime tvos_runtime iphone_device appletv_device
 
@@ -295,6 +295,7 @@ for rt, devices in data['devices'].items():
   else
     log_warn "Apple TV device type or tvOS runtime not found — skipping"
   fi
+
 }
 
 main() {
