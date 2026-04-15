@@ -56,7 +56,6 @@ check_disk_space() {
   fi
 }
 
-
 prompt_version() {
   log_info "Fetching available Xcode versions..."
 
@@ -84,18 +83,6 @@ print(stable[-1] if stable else '')
   fi
 }
 
-check_if_current() {
-  local version="$1"
-  local version_number current
-  version_number=$(echo "$version" | awk '{print $1}')
-  current=$(xcodebuild -version 2>/dev/null | awk 'NR==1{print $2}' || true)
-  if [[ "$current" == "$version_number" ]]; then
-    log_ok "Xcode ${version_number} is already installed and active"
-    return 0
-  fi
-  return 1
-}
-
 preflight_summary() {
   local version="$1"
 
@@ -110,6 +97,32 @@ preflight_summary() {
     exit 0
   fi
   confirm_line "Proceed? ${GREEN}Yes${CLEAR}"
+}
+
+# If Xcode.app exists without a version suffix (e.g. installed via macOS Software Update),
+# rename it to Xcode-<version>.app so xcodes can manage it consistently.
+rename_xcode_app() {
+  local app="/Applications/Xcode.app"
+  [[ -d "$app" ]] || return 0
+
+  local version
+  version=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" \
+    "$app/Contents/Info.plist" 2>/dev/null || true)
+
+  if [[ -z "$version" ]]; then
+    log_warn "Could not read version from Xcode.app — skipping rename"
+    return 0
+  fi
+
+  local new_app="/Applications/Xcode-${version}.app"
+  if [[ -d "$new_app" ]]; then
+    log_ok "Xcode.app already exists as Xcode-${version}.app — skipping rename"
+    return 0
+  fi
+  log_info "Renaming Xcode.app → Xcode-${version}.app..."
+  sudo mv "$app" "$new_app"
+  sudo xcode-select -s "$new_app"
+  log_ok "Renamed to Xcode-${version}.app"
 }
 
 cleanup_runtimes() {
@@ -183,7 +196,7 @@ remove_old_versions() {
 install_xcode() {
   local version="$1"
   log_info "Downloading and installing Xcode ${version} (this will take a while)..."
-  xcodes install "$version" --experimental-unxip
+  xcodes install "$version"
   log_ok "Xcode ${version} installed"
 }
 
@@ -284,19 +297,6 @@ for rt, devices in data['devices'].items():
   fi
 }
 
-run_cleanup() {
-  local version="$1"
-  log_info "Requesting sudo (required throughout)..."
-  sudo_keepalive
-
-  log_section "Cleanup"
-  remove_old_versions "$version"
-  cleanup_runtimes "$version"
-  log_info "Removing unavailable simulators..."
-  sudo xcrun simctl delete unavailable 2>/dev/null || true
-  log_ok "Unavailable simulators removed"
-}
-
 main() {
   check_dependencies
 
@@ -305,26 +305,29 @@ main() {
   check_disk_space
   preflight_summary "$XCODE_VERSION"
 
-  run_cleanup "$XCODE_VERSION"
+  log_info "Requesting sudo (required throughout)..."
+  sudo_keepalive
 
-  if check_if_current "$XCODE_VERSION"; then
-    log_section "Simulators"
-    cleanup_runtimes "$XCODE_VERSION"
-    setup_simulators
-  else
+  log_section "Cleanup"
+  rename_xcode_app
+  remove_old_versions "$XCODE_VERSION"
+  cleanup_runtimes "$XCODE_VERSION"
+
+  if ! xcodes installed 2>/dev/null | grep -qE "^${XCODE_VERSION%% *} "; then
     log_section "Download & Install"
     install_xcode "$XCODE_VERSION"
-
-    log_section "Configure"
-    configure_xcode
-
-    log_section "Platforms & SDKs"
-    install_platforms
-
-    log_section "Simulators"
-    cleanup_runtimes "$XCODE_VERSION"
-    setup_simulators
+  else
+    log_ok "Xcode ${XCODE_VERSION%% *} is already installed"
   fi
+
+  log_section "Configure"
+  configure_xcode
+
+  log_section "Platforms & SDKs"
+  install_platforms
+
+  log_section "Simulators"
+  setup_simulators
 
   log_section "Done"
   xcodebuild -version
