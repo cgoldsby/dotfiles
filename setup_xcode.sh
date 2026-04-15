@@ -270,18 +270,24 @@ for rt, devices in data['devices'].items():
     local count
     count=$(echo "$udids" | grep -c . || true)
 
+    local udid
     if [[ "$count" -eq 0 ]]; then
-      xcrun simctl create "$name" "$device" "$runtime" > /dev/null
+      udid=$(xcrun simctl create "$name" "$device" "$runtime")
       log_ok "${name} simulator created"
     elif [[ "$count" -gt 1 ]]; then
       # Keep the first, delete the rest
-      local keep
-      keep=$(echo "$udids" | head -1)
+      udid=$(echo "$udids" | head -1)
       echo "$udids" | tail -n +2 | xargs xcrun simctl delete 2>/dev/null || true
       log_ok "${name} simulator deduplicated (kept 1 of ${count})"
     else
+      udid="$udids"
       log_ok "${name} simulator exists"
     fi
+
+    # Set "Show as Run Destination: Always" — Xcode's Automatic heuristic hides
+    # tvOS simulators; this writes the same preference the UI toggle sets.
+    defaults write com.apple.dt.Xcode DVTDeviceVisibilityPreferences \
+      -dict-add "$udid" -int 1
   }
 
   if [[ -n "$ios_runtime" && -n "$iphone_device" ]]; then
