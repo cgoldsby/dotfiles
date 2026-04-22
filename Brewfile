@@ -1,5 +1,6 @@
 # Formulae
 brew "aria2"
+brew "bat"
 brew "fzf"
 brew "jq"
 brew "m-cli"
