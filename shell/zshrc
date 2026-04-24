@@ -38,7 +38,8 @@ export CLICOLOR=1
 export GPG_TTY=$(tty)
 
 # NVM
-unset PREFIX  # prevent Homebrew's PREFIX from breaking nvm
+unset PREFIX            # prevent Homebrew's PREFIX from breaking nvm
+unset npm_config_prefix # prevent Homebrew's npm from breaking nvm
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"
 [ -s "$NVM_DIR/bash_completion" ] && source "$NVM_DIR/bash_completion"

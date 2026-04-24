@@ -43,7 +43,14 @@ setup_nvm() {
     log_info "Installing NVM..."
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/HEAD/install.sh | bash
   fi
-  log_ok "NVM"
+  export NVM_DIR="$HOME/.nvm"
+  [ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"
+  if ! nvm version default &>/dev/null 2>&1; then
+    log_info "Installing Node LTS..."
+    nvm install --lts
+    nvm alias default lts/*
+  fi
+  log_ok "NVM + Node $(node --version)"
 }
 
 setup_tools() {
