@@ -4,6 +4,7 @@ alias cd..='cd ../'                         # Go back 1 directory level (for fas
 alias ..='cd ../'                           # Go back 1 directory level
 alias ~="cd ~"                              # ~:	Go Home
 alias c='clear'                             # c:	Clear terminal display
+alias m-reboot='sudo fdesetup authrestart'  # Reboot with password in RAM to bypass "Pre-boot" screen during next restart.
 
 # Git
 alias gbc='git checkout -b'                                                             # Create and checkout new branch
