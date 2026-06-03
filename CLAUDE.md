@@ -2,7 +2,7 @@
 
 ## Repo Overview
 
-Personal dotfiles for macOS. Managed via symlinks — edits to `~/.zshrc`, `~/.config/starship.toml`, and `~/.config/ghostty/config` write directly into this repo.
+Personal dotfiles for macOS. Managed via symlinks: edits to `~/.zshrc`, `~/.config/starship.toml`, `~/.config/ghostty/config`, and `~/.config/zellij/config.kdl` write directly into this repo.
 
 ## File Locations
 
@@ -14,6 +14,7 @@ Personal dotfiles for macOS. Managed via symlinks — edits to `~/.zshrc`, `~/.c
 | Ghostty | `ghostty/config` | `~/.config/ghostty/config` |
 | Vim | `vim/vimrc` | `~/.vimrc` |
 | SSH | `ssh/config` | `~/.ssh/config` |
+| Zellij | `zellij/config.kdl` | `~/.config/zellij/config.kdl` |
 | VS Code settings | `vscode/settings.json` | merged into `~/Library/Application Support/Code/User/settings.json` via install.sh |
 | VS Code extensions | `vscode/extensions.txt` | installed via `code --install-extension` |
 
@@ -41,6 +42,7 @@ VS Code settings are **merged** (not symlinked) — `install.sh` uses `jq` to la
 - **Shell** (`zshrc`, `shell_aliases`): `source ~/.zshrc`
 - **Starship**: changes apply immediately on next prompt
 - **Ghostty**: picks up config changes live, no restart needed
+- **Zellij** (`zellij/config.kdl`): restart Zellij to apply changes
 - **install.sh**: safe to re-run — all steps check before acting
 
 ## Commit Style

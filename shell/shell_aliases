@@ -24,6 +24,10 @@ alias sources='cd ~/Sources'		# Navigate to Sources directory
 alias dotfiles='cd ~/Sources/dotfiles' 	# Navigation to dotfiles project
 alias be="bundle exec "
 
+# Zellij
+alias zj='zellij attach 2>/dev/null || zellij'
+alias zellij-config='$EDITOR ~/.config/zellij/config.kdl'
+
 # Ghostty
 alias ghostty-config='$EDITOR ~/.config/ghostty/config'
 alias ghostty-reload='kill -USR1 $(pgrep ghostty)'

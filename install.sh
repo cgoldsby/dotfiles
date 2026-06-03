@@ -149,6 +149,12 @@ print(json.dumps(json.loads(content)))
   fi
 }
 
+setup_zellij() {
+  mkdir -p "$HOME/.config/zellij"
+  symlink "$DOTFILES/zellij/config.kdl" "$HOME/.config/zellij/config.kdl"
+  log_ok "Zellij"
+}
+
 setup_ssh() {
   mkdir -p "$HOME/.ssh"
   chmod 700 "$HOME/.ssh"
@@ -210,6 +216,7 @@ main() {
   setup_ghostty_terminfo
   setup_vim
   setup_vscode
+  setup_zellij
   setup_ssh
   setup_git
 
