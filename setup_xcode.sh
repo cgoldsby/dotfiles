@@ -16,7 +16,22 @@ log_section() { echo -e "\n${BOLD}=> $1${CLEAR}"; }
 confirm_line() { printf "\033[1A\033[2K"; echo -e "$1"; }
 
 XCODE_VERSION=""
+INCLUDE_BETA=false
 SUDO_KEEPALIVE_PID=""
+
+usage() {
+  echo "Usage: $(basename "$0") [-b|--beta]"
+  echo "  -b, --beta    Include beta and RC versions when detecting the latest Xcode"
+  exit 0
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -b|--beta) INCLUDE_BETA=true; shift ;;
+    -h|--help) usage ;;
+    *) echo "Unknown option: $1"; usage ;;
+  esac
+done
 
 cleanup() {
   [[ -n "$SUDO_KEEPALIVE_PID" ]] && kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
@@ -62,10 +77,14 @@ prompt_version() {
   local latest
   latest=$(xcodes list 2>/dev/null | python3 -c "
 import sys, re
-stable = [v.strip() for v in sys.stdin
-          if v.strip() and not re.search(r'beta|release candidate|\brc\b', v, re.IGNORECASE)]
-print(stable[-1] if stable else '')
-" || true)
+include_beta = sys.argv[1] == 'true'
+versions = [v.strip() for v in sys.stdin
+            if v.strip() and not v.strip().startswith('Showing')]
+if not include_beta:
+    versions = [v for v in versions
+                if not re.search(r'beta|release candidate|\brc\b', v, re.IGNORECASE)]
+print(versions[-1] if versions else '')
+" "$INCLUDE_BETA" || true)
 
   if [[ -z "$latest" ]]; then
     log_warn "Could not fetch version list — enter version manually"
@@ -196,11 +215,24 @@ remove_old_versions() {
 install_xcode() {
   local version="$1"
   log_info "Downloading and installing Xcode ${version} (this will take a while)..."
-  xcodes install "$version"
+  xcodes install "$version" < /dev/tty
   log_ok "Xcode ${version} installed"
 }
 
 configure_xcode() {
+  local target_version="${XCODE_VERSION%% *}"
+  for app in /Applications/Xcode*.app; do
+    local v
+    v=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" \
+      "$app/Contents/Info.plist" 2>/dev/null || true)
+    if [[ "$v" == "$target_version" ]]; then
+      log_info "Selecting ${app}..."
+      sudo xcode-select -s "$app"
+      log_ok "Active developer directory set to ${app}"
+      break
+    fi
+  done
+
   log_info "Accepting license..."
   sudo xcodebuild -license accept
   log_ok "License accepted"
@@ -251,8 +283,9 @@ print(dts[-1]['identifier'] if dts else '')
   appletv_device=$(xcrun simctl list devicetypes --json | python3 -c "
 import json, sys
 dts = [d for d in json.load(sys.stdin)['devicetypes']
-       if 'Apple TV' in d['name'] and '4K' in d['name']]
-print(dts[-1]['identifier'] if dts else '')
+       if 'Apple TV' in d['name'] and '4K' in d['name']
+       and '1080p' not in d['name']]
+print(dts[0]['identifier'] if dts else '')
 ")
 
   ensure_simulator() {
