@@ -5,7 +5,10 @@ GREEN='\033[1;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[1;34m'
 BOLD='\033[1m'
+DIM='\033[2m'
 CLEAR='\033[0m'
+
+SUDO_KEEPALIVE_PID=""
 
 log_ok()      { echo -e "${GREEN}✓${CLEAR} $1"; }
 log_warn()    { echo -e "${YELLOW}!${CLEAR} $1"; }
@@ -14,24 +17,6 @@ log_section() { echo -e "\n${BOLD}=> $1${CLEAR}"; }
 
 # Rewrite the previous line with a colored answer
 confirm_line() { printf "\033[1A\033[2K"; echo -e "$1"; }
-
-XCODE_VERSION=""
-INCLUDE_BETA=false
-SUDO_KEEPALIVE_PID=""
-
-usage() {
-  echo "Usage: $(basename "$0") [-b|--beta]"
-  echo "  -b, --beta    Include beta and RC versions when detecting the latest Xcode"
-  exit 0
-}
-
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    -b|--beta) INCLUDE_BETA=true; shift ;;
-    -h|--help) usage ;;
-    *) echo "Unknown option: $1"; usage ;;
-  esac
-done
 
 cleanup() {
   [[ -n "$SUDO_KEEPALIVE_PID" ]] && kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
@@ -44,334 +29,573 @@ sudo_keepalive() {
   SUDO_KEEPALIVE_PID=$!
 }
 
+# Wait until a runtime identifier disappears from the list
+wait_for_runtime_delete() {
+  local id="$1"
+  while xcrun simctl runtime list -j 2>/dev/null | jq -e --arg id "$id" 'has($id)' >/dev/null 2>&1; do
+    sleep 1
+  done
+}
+
 check_dependencies() {
   if ! command -v xcodes &>/dev/null; then
-    if ! command -v brew &>/dev/null; then
-      log_warn "xcodes not installed and Homebrew not found."
-      echo "Run ./install.sh to set up required tools."
-      exit 1
-    fi
-    log_info "Installing xcodes..."
-    brew install xcodes
-    log_ok "xcodes installed"
-  fi
-}
-
-check_disk_space() {
-  local required_gb=60 available_gb
-  available_gb=$(df -g / | awk 'NR==2 {print $4}')
-  if (( available_gb < required_gb )); then
-    log_warn "${available_gb}GB available — ~${required_gb}GB recommended for Xcode + SDKs + simulators"
-    read -r -p "Continue anyway? [Y/n] " confirm || true
-    if [[ "${confirm:-}" =~ ^[Nn]$ ]]; then
-      confirm_line "Continue anyway? ${YELLOW}No${CLEAR}"
-      exit 0
-    fi
-    confirm_line "Continue anyway? ${GREEN}Yes${CLEAR}"
-  fi
-}
-
-prompt_version() {
-  log_info "Fetching available Xcode versions..."
-
-  local latest
-  latest=$(xcodes list 2>/dev/null | python3 -c "
-import sys, re
-include_beta = sys.argv[1] == 'true'
-versions = [v.strip() for v in sys.stdin
-            if v.strip() and not v.strip().startswith('Showing')]
-if not include_beta:
-    versions = [v for v in versions
-                if not re.search(r'beta|release candidate|\brc\b', v, re.IGNORECASE)]
-print(versions[-1] if versions else '')
-" "$INCLUDE_BETA" || true)
-
-  if [[ -z "$latest" ]]; then
-    log_warn "Could not fetch version list — enter version manually"
-    read -r -p "Version to install: " XCODE_VERSION || true
-    confirm_line "Version to install: ${GREEN}${XCODE_VERSION}${CLEAR}"
-  else
-    read -r -p "Version to install [${latest}]: " XCODE_VERSION || true
-    XCODE_VERSION="${XCODE_VERSION:-$latest}"
-    confirm_line "Version to install: ${GREEN}${XCODE_VERSION}${CLEAR}"
-  fi
-
-  if [[ -z "${XCODE_VERSION:-}" ]]; then
-    echo "No version specified."
+    log_warn "xcodes is required but not installed"
+    log_info "Install it with: brew install xcodes"
     exit 1
   fi
 }
 
-preflight_summary() {
-  local version="$1"
+# --- Cleanup Phase ---
 
-  echo ""
-  echo -e "${BOLD}Version:${CLEAR}     ${version}"
-  echo -e "${BOLD}Disk:${CLEAR}        ~60GB recommended"
-  echo -e "${BOLD}Simulators:${CLEAR}  iPhone 17 (iOS), Apple TV (tvOS)"
-  echo ""
-  read -r -p "Proceed? [Y/n] " confirm || true
-  if [[ "${confirm:-}" =~ ^[Nn]$ ]]; then
-    confirm_line "Proceed? ${YELLOW}No${CLEAR}"
-    exit 0
-  fi
-  confirm_line "Proceed? ${GREEN}Yes${CLEAR}"
-}
+cleanup_simulators() {
+  log_section "Cleanup: Simulators"
 
-# If Xcode.app exists without a version suffix (e.g. installed via macOS Software Update),
-# rename it to Xcode-<version>.app so xcodes can manage it consistently.
-rename_xcode_app() {
-  local app="/Applications/Xcode.app"
-  [[ -d "$app" ]] || return 0
-
-  local version
-  version=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" \
-    "$app/Contents/Info.plist" 2>/dev/null || true)
-
-  if [[ -z "$version" ]]; then
-    log_warn "Could not read version from Xcode.app — skipping rename"
+  if ! xcode-select -p >/dev/null 2>&1; then
+    log_info "No developer tools installed; skipping"
     return 0
   fi
 
-  local new_app="/Applications/Xcode-${version}.app"
-  if [[ -d "$new_app" ]]; then
-    log_ok "Xcode.app already exists as Xcode-${version}.app — skipping rename"
+  local devices_json
+  devices_json=$(xcrun simctl list devices -j 2>/dev/null || true)
+
+  if [[ -z "$devices_json" ]]; then
+    log_info "No simulators found"
     return 0
   fi
-  log_info "Renaming Xcode.app → Xcode-${version}.app..."
-  sudo mv "$app" "$new_app"
-  sudo xcode-select -s "$new_app"
-  log_ok "Renamed to Xcode-${version}.app"
+
+  # Collect all devices (name, udid, runtime) into parallel arrays
+  local names=() udids=() runtimes=()
+  while IFS=$'\t' read -r name udid runtime; do
+    names+=("$name")
+    udids+=("$udid")
+    runtimes+=("$runtime")
+  done < <(echo "$devices_json" | jq -r '
+    [.devices | to_entries[] | .key as $rt |
+    ($rt | sub("com\\.apple\\.CoreSimulator\\.SimRuntime\\."; "")
+         | sub("-"; " ")
+         | sub("-"; ".")) as $label |
+    .value[] | select(.isAvailable) |
+    {name: .name, udid: .udid, label: $label}]
+    | sort_by(.label, .name)[]
+    | "\(.name)\t\(.udid)\t\(.label)"
+  ')
+
+  if [[ ${#names[@]} -eq 0 ]]; then
+    log_info "No simulators found"
+    return 0
+  fi
+
+  log_info "${#names[@]} simulator(s) found"
+  for i in "${!names[@]}"; do
+    echo -e "  ${names[$i]} (${runtimes[$i]})"
+  done
+
+  read -r -p "Delete all simulators? [y/N] " confirm || true
+  if [[ "${confirm:-}" =~ ^[Yy]$ ]]; then
+    confirm_line "Delete all simulators? ${GREEN}Yes${CLEAR}"
+    xcrun simctl delete all
+    log_ok "All simulators deleted"
+    return 0
+  fi
+  confirm_line "Delete all simulators? ${YELLOW}No${CLEAR}"
+
+  # Prompt for each simulator individually
+  for i in "${!names[@]}"; do
+    local display="${names[$i]} (${runtimes[$i]}) ${DIM}${udids[$i]}${CLEAR}"
+    printf "Delete %b? [y/N] " "$display"
+    read -r confirm || true
+    if [[ "${confirm:-}" =~ ^[Yy]$ ]]; then
+      confirm_line "Delete ${display}? ${GREEN}Yes${CLEAR}"
+      xcrun simctl delete "${udids[$i]}"
+      log_ok "Deleted ${names[$i]}"
+    else
+      confirm_line "Delete ${display}? ${YELLOW}No${CLEAR}"
+    fi
+  done
 }
 
 cleanup_runtimes() {
-  local keep_version
-  keep_version=$(echo "$1" | awk '{print $1}')
+  log_section "Cleanup: Runtimes"
 
-  log_info "Scanning simulator runtimes..."
-
-  local to_remove
-  to_remove=$(xcrun simctl runtime list 2>/dev/null | python3 -c "
-import sys, re
-keep = sys.argv[1]
-for line in sys.stdin:
-    line = line.strip()
-    m = re.match(r'(.+?)\s+-\s+([0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12})', line)
-    if not m:
-        continue
-    name, uuid = m.group(1).strip(), m.group(2)
-    if keep not in name:
-        print(f'{uuid}\t{name}')
-" "$keep_version" || true)
-
-  if [[ -z "$to_remove" ]]; then
-    log_ok "No stale runtimes found"
-    return
+  if ! xcode-select -p >/dev/null 2>&1; then
+    log_info "No developer tools installed; skipping"
+    return 0
   fi
 
-  echo ""
-  while IFS=$'\t' read -r uuid name; do
-    echo "  ${name}"
-  done <<< "$to_remove"
-  echo ""
+  local runtimes_json
+  runtimes_json=$(xcrun simctl runtime list -j 2>/dev/null || true)
 
-  read -r -p "Remove all stale runtimes? [Y/n] " confirm || true
-  if [[ "${confirm:-}" =~ ^[Nn]$ ]]; then
-    confirm_line "Remove all stale runtimes? ${YELLOW}No${CLEAR}"
-    return
+  if [[ -z "$runtimes_json" ]]; then
+    log_info "No iOS/tvOS runtimes found"
+    return 0
   fi
-  confirm_line "Remove all stale runtimes? ${GREEN}Yes${CLEAR}"
 
-  while IFS=$'\t' read -r uuid name; do
-    log_info "Removing ${name}..."
-    sudo xcrun simctl runtime delete "$uuid"
-    log_ok "Removed ${name}"
-  done <<< "$to_remove"
-}
+  # Collect iOS and tvOS runtimes
+  local platforms=() versions=() identifiers=() sizes=()
+  while IFS=$'\t' read -r platform version identifier size; do
+    platforms+=("$platform")
+    versions+=("$version")
+    identifiers+=("$identifier")
+    sizes+=("$size")
+  done < <(echo "$runtimes_json" | jq -r '
+    [to_entries[].value |
+    select(.platformIdentifier == "com.apple.platform.iphonesimulator" or
+           .platformIdentifier == "com.apple.platform.appletvsimulator") |
+    (if .platformIdentifier == "com.apple.platform.iphonesimulator" then "iOS"
+     else "tvOS" end) as $platform |
+    (.sizeBytes / 1073741824 * 10 | floor / 10 | tostring + " GB") as $size |
+    {platform: $platform, version: .version, identifier: .identifier, size: $size}]
+    | sort_by(.platform, .version)[]
+    | "\(.platform)\t\(.version)\t\(.identifier)\t\(.size)"
+  ')
 
-remove_old_versions() {
-  local target="$1"
-  local target_version
-  target_version=$(echo "$target" | awk '{print $1}')
+  if [[ ${#platforms[@]} -eq 0 ]]; then
+    log_info "No iOS/tvOS runtimes found"
+    return 0
+  fi
 
-  for app in /Applications/Xcode*.app; do
-    [[ -d "$app" ]] || continue
-    local version
-    version=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" \
-      "$app/Contents/Info.plist" 2>/dev/null || true)
-    [[ -z "$version" || "$version" == "$target_version" ]] && continue
-    read -r -p "Remove Xcode ${version}? [Y/n] " confirm || true
-    if [[ "${confirm:-}" =~ ^[Nn]$ ]]; then
-      confirm_line "Remove Xcode ${version}? ${YELLOW}No${CLEAR}"
+  log_info "${#platforms[@]} runtime(s) found"
+  for i in "${!platforms[@]}"; do
+    echo -e "  ${platforms[$i]} ${versions[$i]} (${sizes[$i]})"
+  done
+
+  read -r -p "Delete all runtimes? [y/N] " confirm || true
+  if [[ "${confirm:-}" =~ ^[Yy]$ ]]; then
+    confirm_line "Delete all runtimes? ${GREEN}Yes${CLEAR}"
+    for i in "${!identifiers[@]}"; do
+      xcrun simctl runtime delete "${identifiers[$i]}"
+      wait_for_runtime_delete "${identifiers[$i]}"
+      log_ok "Deleted ${platforms[$i]} ${versions[$i]}"
+    done
+    return 0
+  fi
+  confirm_line "Delete all runtimes? ${YELLOW}No${CLEAR}"
+
+  for i in "${!platforms[@]}"; do
+    local display="${platforms[$i]} ${versions[$i]} (${sizes[$i]}) ${DIM}${identifiers[$i]}${CLEAR}"
+    printf "Delete %b? [y/N] " "$display"
+    read -r confirm || true
+    if [[ "${confirm:-}" =~ ^[Yy]$ ]]; then
+      confirm_line "Delete ${display}? ${GREEN}Yes${CLEAR}"
+      xcrun simctl runtime delete "${identifiers[$i]}"
+      wait_for_runtime_delete "${identifiers[$i]}"
+      log_ok "Deleted ${platforms[$i]} ${versions[$i]}"
     else
-      confirm_line "Remove Xcode ${version}? ${GREEN}Yes${CLEAR}"
-      log_info "Removing Xcode ${version}..."
-      sudo rm -rf "$app"
-      log_ok "Removed Xcode ${version}"
+      confirm_line "Delete ${display}? ${YELLOW}No${CLEAR}"
     fi
   done
+}
+
+cleanup_xcode() {
+  log_section "Cleanup: Xcode"
+
+  # Parse "xcodes installed" output: "VERSION (BUILD) [ARCH] (Selected)\tPATH"
+  local installed_output
+  installed_output=$(xcodes installed 2>/dev/null || true)
+
+  local versions=() paths=() selected=()
+  if [[ -n "$installed_output" ]]; then
+    while IFS=$'\t' read -r info path; do
+      local version
+      version=$(echo "$info" | sed 's/ (.*//')
+      local is_selected=""
+      [[ "$info" == *"(Selected)"* ]] && is_selected="yes"
+      versions+=("$version")
+      paths+=("${path## }")
+      selected+=("$is_selected")
+    done <<< "$installed_output"
+  fi
+
+  if [[ ${#versions[@]} -eq 0 ]]; then
+    log_info "No Xcode installations found"
+  else
+    log_info "${#versions[@]} Xcode(s) found"
+    for i in "${!versions[@]}"; do
+      local label="${versions[$i]}"
+      [[ -n "${selected[$i]}" ]] && label="${label} (Selected)"
+      echo -e "  ${label}"
+    done
+
+    read -r -p "Delete all Xcode installations? [y/N] " confirm || true
+    if [[ "${confirm:-}" =~ ^[Yy]$ ]]; then
+      confirm_line "Delete all Xcode installations? ${GREEN}Yes${CLEAR}"
+      sudo_keepalive
+      for i in "${!versions[@]}"; do
+        sudo xcodes uninstall "${versions[$i]}"
+        log_ok "Deleted Xcode ${versions[$i]}"
+      done
+    else
+      confirm_line "Delete all Xcode installations? ${YELLOW}No${CLEAR}"
+
+      for i in "${!versions[@]}"; do
+        local label="${versions[$i]}"
+        [[ -n "${selected[$i]}" ]] && label="${label} (Selected)"
+        local display="${label} ${DIM}${paths[$i]}${CLEAR}"
+        printf "Delete Xcode %b? [y/N] " "$display"
+        read -r confirm || true
+        if [[ "${confirm:-}" =~ ^[Yy]$ ]]; then
+          confirm_line "Delete Xcode ${display}? ${GREEN}Yes${CLEAR}"
+          [[ -z "$SUDO_KEEPALIVE_PID" ]] && sudo_keepalive
+          sudo xcodes uninstall "${versions[$i]}"
+          log_ok "Deleted Xcode ${versions[$i]}"
+        else
+          confirm_line "Delete Xcode ${display}? ${YELLOW}No${CLEAR}"
+        fi
+      done
+    fi
+  fi
+
+  # Always clean shared caches and derived data
+  local always_clean=(
+    "$HOME/Library/Developer/Xcode/DerivedData"
+    "$HOME/Library/Caches/com.apple.dt.Xcode"
+  )
+  for dir in "${always_clean[@]}"; do
+    if [[ -d "$dir" ]]; then
+      rm -rf "$dir"
+      log_ok "Removed ${dir/#$HOME/~}"
+    fi
+  done
+
+  # Check if any Xcode installations remain
+  local remaining
+  remaining=$( (xcodes installed 2>/dev/null || true) | grep -c '.' 2>/dev/null) || remaining=0
+
+  if [[ "$remaining" -eq 0 ]]; then
+    # Clean preferences and saved state when no Xcode remains
+    local final_clean=(
+      "$HOME/Library/Preferences/com.apple.dt.Xcode.plist"
+      "$HOME/Library/Saved Application State/com.apple.dt.Xcode.savedState"
+    )
+    for path in "${final_clean[@]}"; do
+      if [[ -e "$path" ]]; then
+        rm -rf "$path"
+        log_ok "Removed ${path/#$HOME/~}"
+      fi
+    done
+
+  fi
+}
+
+cleanup_clt() {
+  log_section "Cleanup: Command Line Tools"
+
+  # Only offer CLT removal when no Xcode remains
+  local remaining
+  remaining=$( (xcodes installed 2>/dev/null || true) | grep -c '.' 2>/dev/null) || remaining=0
+
+  if [[ "$remaining" -gt 0 ]]; then
+    log_info "Xcode still installed; skipping"
+    return 0
+  fi
+
+  if [[ ! -d "/Library/Developer/CommandLineTools" ]]; then
+    log_info "No Command Line Tools found"
+    return 0
+  fi
+
+  read -r -p "Delete Command Line Tools? [y/N] " confirm || true
+  if [[ "${confirm:-}" =~ ^[Yy]$ ]]; then
+    confirm_line "Delete Command Line Tools? ${GREEN}Yes${CLEAR}"
+    [[ -z "$SUDO_KEEPALIVE_PID" ]] && sudo_keepalive
+    sudo rm -rf /Library/Developer/CommandLineTools
+    log_ok "Removed Command Line Tools"
+  else
+    confirm_line "Delete Command Line Tools? ${YELLOW}No${CLEAR}"
+  fi
 }
 
 install_xcode() {
-  local version="$1"
-  log_info "Downloading and installing Xcode ${version} (this will take a while)..."
-  xcodes install "$version" < /dev/tty
-  log_ok "Xcode ${version} installed"
-}
+  log_section "Install: Xcode"
 
-configure_xcode() {
-  local target_version="${XCODE_VERSION%% *}"
-  for app in /Applications/Xcode*.app; do
-    local v
-    v=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" \
-      "$app/Contents/Info.plist" 2>/dev/null || true)
-    if [[ "$v" == "$target_version" ]]; then
-      log_info "Selecting ${app}..."
-      sudo xcode-select -s "$app"
-      log_ok "Active developer directory set to ${app}"
-      break
-    fi
-  done
+  read -r -p "Install Xcode? [y/N] " confirm || true
+  if [[ ! "${confirm:-}" =~ ^[Yy]$ ]]; then
+    confirm_line "Install Xcode? ${YELLOW}No${CLEAR}"
+    return 0
+  fi
+  confirm_line "Install Xcode? ${GREEN}Yes${CLEAR}"
 
-  log_info "Accepting license..."
-  sudo xcodebuild -license accept
-  log_ok "License accepted"
-
-  log_info "Running first launch..."
-  sudo xcodebuild -runFirstLaunch
-  log_ok "First launch complete"
-}
-
-install_platforms() {
-  log_info "Downloading iOS platform..."
-  sudo xcodebuild -downloadPlatform iOS
-  log_ok "iOS platform installed"
-
-  log_info "Downloading tvOS platform..."
-  sudo xcodebuild -downloadPlatform tvOS
-  log_ok "tvOS platform installed"
-}
-
-setup_simulators() {
-  log_info "Removing all simulators..."
-  xcrun simctl delete all
-  log_ok "All simulators removed"
-
-  local ios_runtime tvos_runtime iphone_device appletv_device
-
-  ios_runtime=$(xcrun simctl list runtimes --json | python3 -c "
-import json, sys
-rts = [r for r in json.load(sys.stdin)['runtimes']
-       if 'iOS' in r['name'] and r.get('isAvailable', False)]
-print(rts[-1]['identifier'] if rts else '')
-")
-
-  tvos_runtime=$(xcrun simctl list runtimes --json | python3 -c "
-import json, sys
-rts = [r for r in json.load(sys.stdin)['runtimes']
-       if 'tvOS' in r['name'] and r.get('isAvailable', False)]
-print(rts[-1]['identifier'] if rts else '')
-")
-
-  iphone_device=$(xcrun simctl list devicetypes --json | python3 -c "
-import json, sys
-dts = [d for d in json.load(sys.stdin)['devicetypes']
-       if 'iPhone 17' in d['name']]
-print(dts[-1]['identifier'] if dts else '')
-")
-
-  appletv_device=$(xcrun simctl list devicetypes --json | python3 -c "
-import json, sys
-dts = [d for d in json.load(sys.stdin)['devicetypes']
-       if 'Apple TV' in d['name'] and '4K' in d['name']
-       and '1080p' not in d['name']]
-print(dts[0]['identifier'] if dts else '')
-")
-
-  ensure_simulator() {
-    local name="$1" device="$2" runtime="$3"
-    local udids
-    udids=$(xcrun simctl list devices --json | python3 -c "
-import json, sys
-data = json.load(sys.stdin)
-for rt, devices in data['devices'].items():
-    for d in devices:
-        if d['name'] == sys.argv[1]:
-            print(d['udid'])
-" "$name" || true)
-
-    local count
-    count=$(echo "$udids" | grep -c . || true)
-
-    local udid
-    if [[ "$count" -eq 0 ]]; then
-      udid=$(xcrun simctl create "$name" "$device" "$runtime")
-      log_ok "${name} simulator created"
-    elif [[ "$count" -gt 1 ]]; then
-      # Keep the first, delete the rest
-      udid=$(echo "$udids" | head -1)
-      echo "$udids" | tail -n +2 | xargs xcrun simctl delete 2>/dev/null || true
-      log_ok "${name} simulator deduplicated (kept 1 of ${count})"
+  # Ensure CLT exists so xcodes can fetch the version list
+  if ! xcode-select -p >/dev/null 2>&1; then
+    log_info "Installing Command Line Tools (required for xcodes)..."
+    [[ -z "$SUDO_KEEPALIVE_PID" ]] && sudo_keepalive
+    sudo touch /tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress
+    local clt_pkg
+    clt_pkg=$(softwareupdate -l 2>/dev/null | grep -o 'Command Line Tools.*' | head -1 || true)
+    if [[ -n "$clt_pkg" ]]; then
+      sudo softwareupdate -i "$clt_pkg"
     else
-      udid="$udids"
-      log_ok "${name} simulator exists"
+      log_warn "Could not find Command Line Tools package"
+      sudo rm -f /tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress
+      return 1
     fi
-
-    # Set "Show as Run Destination: Always" — Xcode's Automatic heuristic hides
-    # tvOS simulators; this writes the same preference the UI toggle sets.
-    defaults write com.apple.dt.Xcode DVTDeviceVisibilityPreferences \
-      -dict-add "$udid" -int 1
-  }
-
-  if [[ -n "$ios_runtime" && -n "$iphone_device" ]]; then
-    ensure_simulator "iPhone 17" "$iphone_device" "$ios_runtime"
-  else
-    log_warn "iPhone 17 device type or iOS runtime not found — skipping"
+    sudo rm -f /tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress
+    local clt_version
+    clt_version=$(pkgutil --pkg-info=com.apple.pkg.CLTools_Executables 2>/dev/null \
+      | awk '/version:/ {split($2,v,"."); print v[1]"."v[2]}' || true)
+    log_ok "Command Line Tools ${clt_version:-} installed"
   fi
 
-  if [[ -n "$tvos_runtime" && -n "$appletv_device" ]]; then
-    ensure_simulator "Apple TV" "$appletv_device" "$tvos_runtime"
+  # Fetch latest stable version
+  log_info "Fetching available Xcode versions..."
+  local latest
+  latest=$(xcodes list 2>/dev/null \
+    | grep -viE 'beta|release candidate|\brc\b|showing' \
+    | grep -v '^$' \
+    | sed 's/ (.*//' \
+    | tail -1 \
+    | tr -d '[:space:]' || true)
+
+  local xcode_version
+  if [[ -n "$latest" ]]; then
+    read -r -p "Version to install [${latest}]: " xcode_version || true
+    xcode_version="${xcode_version:-$latest}"
+    confirm_line "Version to install: ${GREEN}${xcode_version}${CLEAR}"
   else
-    log_warn "Apple TV device type or tvOS runtime not found — skipping"
+    log_warn "Could not fetch version list"
+    read -r -p "Version to install: " xcode_version || true
+    confirm_line "Version to install: ${GREEN}${xcode_version}${CLEAR}"
   fi
 
+  if [[ -z "${xcode_version:-}" ]]; then
+    log_warn "No version specified"
+    return 1
+  fi
+
+  # Install
+  [[ -z "$SUDO_KEEPALIVE_PID" ]] && sudo_keepalive
+  log_info "Installing Xcode ${xcode_version}..."
+  if ! xcodes install "$xcode_version"; then
+    log_warn "Xcode ${xcode_version} installation failed"
+    return 1
+  fi
+  log_ok "Xcode ${xcode_version} installed"
+
+  # Select and accept license
+  local app_path
+  app_path=$(xcodes installed 2>/dev/null | grep "^${xcode_version}" | awk -F'\t' '{print $2}' | tr -d ' ')
+  if [[ -n "$app_path" ]]; then
+    sudo xcode-select -s "$app_path"
+    log_ok "Selected ${app_path}"
+  fi
+
+  if sudo xcodebuild -license accept 2>/dev/null; then
+    log_ok "License accepted"
+  else
+    log_warn "Could not accept license automatically"
+  fi
+}
+
+install_runtimes() {
+  log_section "Install: Runtimes"
+
+  if ! xcode-select -p >/dev/null 2>&1; then
+    log_info "No Xcode installed; skipping"
+    return 0
+  fi
+
+  # Get SDK versions from the selected Xcode
+  local ios_version tvos_version
+  ios_version=$(xcodebuild -showsdks 2>/dev/null \
+    | awk '/Simulator - iOS/ {print $NF}' \
+    | sed 's/iphonesimulator//' || true)
+  tvos_version=$(xcodebuild -showsdks 2>/dev/null \
+    | awk '/Simulator - tvOS/ {print $NF}' \
+    | sed 's/appletvsimulator//' || true)
+
+  # Check which runtimes are already installed
+  local installed_runtimes
+  installed_runtimes=$(xcrun simctl runtime list -j 2>/dev/null || true)
+
+  local ios_installed tvos_installed
+  ios_installed=$(echo "$installed_runtimes" | jq -r \
+    --arg v "$ios_version" \
+    'to_entries[].value | select(.platformIdentifier == "com.apple.platform.iphonesimulator" and .version == $v) | .version' 2>/dev/null || true)
+  tvos_installed=$(echo "$installed_runtimes" | jq -r \
+    --arg v "$tvos_version" \
+    'to_entries[].value | select(.platformIdentifier == "com.apple.platform.appletvsimulator" and .version == $v) | .version' 2>/dev/null || true)
+
+  # iOS runtime
+  if [[ -n "$ios_version" ]]; then
+    if [[ -n "$ios_installed" ]]; then
+      log_ok "iOS ${ios_version} runtime already installed"
+    else
+      read -r -p "Install iOS ${ios_version} runtime? [y/N] " confirm || true
+      if [[ "${confirm:-}" =~ ^[Yy]$ ]]; then
+        confirm_line "Install iOS ${ios_version} runtime? ${GREEN}Yes${CLEAR}"
+        [[ -z "$SUDO_KEEPALIVE_PID" ]] && sudo_keepalive
+        log_info "Downloading iOS ${ios_version} runtime..."
+        xcodebuild -downloadPlatform iOS
+        log_ok "iOS ${ios_version} runtime installed"
+      else
+        confirm_line "Install iOS ${ios_version} runtime? ${YELLOW}No${CLEAR}"
+      fi
+    fi
+  fi
+
+  # tvOS runtime
+  if [[ -n "$tvos_version" ]]; then
+    if [[ -n "$tvos_installed" ]]; then
+      log_ok "tvOS ${tvos_version} runtime already installed"
+    else
+      read -r -p "Install tvOS ${tvos_version} runtime? [y/N] " confirm || true
+      if [[ "${confirm:-}" =~ ^[Yy]$ ]]; then
+        confirm_line "Install tvOS ${tvos_version} runtime? ${GREEN}Yes${CLEAR}"
+        [[ -z "$SUDO_KEEPALIVE_PID" ]] && sudo_keepalive
+        log_info "Downloading tvOS ${tvos_version} runtime..."
+        xcodebuild -downloadPlatform tvOS
+        log_ok "tvOS ${tvos_version} runtime installed"
+      else
+        confirm_line "Install tvOS ${tvos_version} runtime? ${YELLOW}No${CLEAR}"
+      fi
+    fi
+  fi
+}
+
+install_simulators() {
+  log_section "Install: Simulators"
+
+  if ! xcode-select -p >/dev/null 2>&1; then
+    log_info "No Xcode installed; skipping"
+    return 0
+  fi
+
+  local devices_json
+  devices_json=$(xcrun simctl list devices -j 2>/dev/null || true)
+  local runtimes_json
+  runtimes_json=$(xcrun simctl list runtimes --json 2>/dev/null || true)
+
+  # Get the SDK versions from the selected Xcode
+  local ios_version tvos_version
+  ios_version=$(xcodebuild -showsdks 2>/dev/null \
+    | awk '/Simulator - iOS/ {print $NF}' \
+    | sed 's/iphonesimulator//' || true)
+  tvos_version=$(xcodebuild -showsdks 2>/dev/null \
+    | awk '/Simulator - tvOS/ {print $NF}' \
+    | sed 's/appletvsimulator//' || true)
+
+  # iOS simulator
+  if [[ -n "$ios_version" ]]; then
+    local ios_runtime_id
+    ios_runtime_id=$(echo "$runtimes_json" | jq -r \
+      --arg v "$ios_version" \
+      '.runtimes[] | select(.name == "iOS \($v)") | .identifier' 2>/dev/null || true)
+
+    if [[ -z "$ios_runtime_id" ]]; then
+      log_info "iOS ${ios_version} runtime not installed; skipping simulator"
+    else
+      # Get supported iPhone devices from this runtime
+      local ios_devices
+      ios_devices=$(echo "$runtimes_json" | jq -r \
+        --arg v "$ios_version" \
+        '.runtimes[] | select(.name == "iOS \($v)") | .supportedDeviceTypes[] | select(.name | test("^iPhone")) | "\(.name)\t\(.identifier)"' 2>/dev/null || true)
+
+      # First iPhone (e.g. iPhone 17)
+      local iphone_name iphone_id
+      iphone_name=$(echo "$ios_devices" | grep -E '^iPhone [0-9]+\t' | head -1 | cut -f1 || true)
+      iphone_id=$(echo "$ios_devices" | grep -E '^iPhone [0-9]+\t' | head -1 | cut -f2 || true)
+
+      if [[ -n "$iphone_id" ]]; then
+        local existing
+        existing=$(echo "$devices_json" | jq -r \
+          --arg rt "$ios_runtime_id" --arg name "$iphone_name" \
+          '.devices[$rt] // [] | map(select(.isAvailable and .name == $name)) | length' 2>/dev/null || echo "0")
+        if [[ "$existing" -gt 0 ]]; then
+          log_ok "${iphone_name} (iOS ${ios_version}) already exists"
+        else
+          read -r -p "Create ${iphone_name} (iOS ${ios_version})? [y/N] " confirm || true
+          if [[ "${confirm:-}" =~ ^[Yy]$ ]]; then
+            confirm_line "Create ${iphone_name} (iOS ${ios_version})? ${GREEN}Yes${CLEAR}"
+            xcrun simctl create "$iphone_name" "$iphone_id" "$ios_runtime_id" >/dev/null
+            log_ok "Created ${iphone_name} (iOS ${ios_version})"
+          else
+            confirm_line "Create ${iphone_name} (iOS ${ios_version})? ${YELLOW}No${CLEAR}"
+          fi
+        fi
+      fi
+
+      # iPhone Duo (if supported by this runtime)
+      local duo_name duo_id
+      duo_name=$(echo "$ios_devices" | grep -E '^iPhone Duo\t' | head -1 | cut -f1 || true)
+      duo_id=$(echo "$ios_devices" | grep -E '^iPhone Duo\t' | head -1 | cut -f2 || true)
+
+      if [[ -n "$duo_id" ]]; then
+        local duo_existing
+        duo_existing=$(echo "$devices_json" | jq -r \
+          --arg rt "$ios_runtime_id" --arg name "$duo_name" \
+          '.devices[$rt] // [] | map(select(.isAvailable and .name == $name)) | length' 2>/dev/null || echo "0")
+        if [[ "$duo_existing" -gt 0 ]]; then
+          log_ok "${duo_name} (iOS ${ios_version}) already exists"
+        else
+          read -r -p "Create ${duo_name} (iOS ${ios_version})? [y/N] " confirm || true
+          if [[ "${confirm:-}" =~ ^[Yy]$ ]]; then
+            confirm_line "Create ${duo_name} (iOS ${ios_version})? ${GREEN}Yes${CLEAR}"
+            xcrun simctl create "$duo_name" "$duo_id" "$ios_runtime_id" >/dev/null
+            log_ok "Created ${duo_name} (iOS ${ios_version})"
+          else
+            confirm_line "Create ${duo_name} (iOS ${ios_version})? ${YELLOW}No${CLEAR}"
+          fi
+        fi
+      fi
+
+      if [[ -z "$iphone_id" && -z "$duo_id" ]]; then
+        log_warn "No compatible iPhone device types for iOS ${ios_version}"
+      fi
+    fi
+  fi
+
+  # tvOS simulator
+  if [[ -n "$tvos_version" ]]; then
+    local tvos_runtime_id
+    tvos_runtime_id=$(echo "$runtimes_json" | jq -r \
+      --arg v "$tvos_version" \
+      '.runtimes[] | select(.name == "tvOS \($v)") | .identifier' 2>/dev/null || true)
+
+    if [[ -z "$tvos_runtime_id" ]]; then
+      log_info "tvOS ${tvos_version} runtime not installed; skipping simulator"
+    else
+      # Get first Apple TV from this runtime's supported device types
+      local atv_name atv_id
+      atv_name=$(echo "$runtimes_json" | jq -r \
+        --arg v "$tvos_version" \
+        '.runtimes[] | select(.name == "tvOS \($v)") | .supportedDeviceTypes[] | select(.name | test("Apple TV")) | .name' 2>/dev/null | head -1 || true)
+      atv_id=$(echo "$runtimes_json" | jq -r \
+        --arg v "$tvos_version" \
+        '.runtimes[] | select(.name == "tvOS \($v)") | .supportedDeviceTypes[] | select(.name | test("Apple TV")) | .identifier' 2>/dev/null | head -1 || true)
+
+      if [[ -n "$atv_id" ]]; then
+        local atv_existing
+        atv_existing=$(echo "$devices_json" | jq -r \
+          --arg rt "$tvos_runtime_id" --arg name "$atv_name" \
+          '.devices[$rt] // [] | map(select(.isAvailable and .name == $name)) | length' 2>/dev/null || echo "0")
+        if [[ "$atv_existing" -gt 0 ]]; then
+          log_ok "${atv_name} (tvOS ${tvos_version}) already exists"
+        else
+          read -r -p "Create ${atv_name} (tvOS ${tvos_version})? [y/N] " confirm || true
+          if [[ "${confirm:-}" =~ ^[Yy]$ ]]; then
+            confirm_line "Create ${atv_name} (tvOS ${tvos_version})? ${GREEN}Yes${CLEAR}"
+            xcrun simctl create "$atv_name" "$atv_id" "$tvos_runtime_id" >/dev/null
+            log_ok "Created ${atv_name} (tvOS ${tvos_version})"
+          else
+            confirm_line "Create ${atv_name} (tvOS ${tvos_version})? ${YELLOW}No${CLEAR}"
+          fi
+        fi
+      else
+        log_warn "No compatible Apple TV device types for tvOS ${tvos_version}"
+      fi
+    fi
+  fi
 }
 
 main() {
   check_dependencies
-
-  log_section "Xcode Installer"
-  prompt_version
-  check_disk_space
-  preflight_summary "$XCODE_VERSION"
-
-  log_info "Requesting sudo (required throughout)..."
-  sudo_keepalive
-
-  log_section "Cleanup"
-  rename_xcode_app
-  remove_old_versions "$XCODE_VERSION"
-  cleanup_runtimes "$XCODE_VERSION"
-
-  if ! xcodes installed 2>/dev/null | grep -qE "^${XCODE_VERSION%% *} "; then
-    log_section "Download & Install"
-    install_xcode "$XCODE_VERSION"
-  else
-    log_ok "Xcode ${XCODE_VERSION%% *} is already installed"
-  fi
-
-  log_section "Configure"
-  configure_xcode
-
-  log_section "Platforms & SDKs"
-  install_platforms
-
-  log_section "Simulators"
-  setup_simulators
-
-  log_section "Done"
-  xcodebuild -version
-  log_ok "Xcode setup complete"
+  cleanup_simulators
+  cleanup_runtimes
+  cleanup_xcode
+  cleanup_clt
+  install_xcode
+  install_runtimes
+  install_simulators
 }
 
 main "$@"
